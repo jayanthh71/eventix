@@ -3,11 +3,13 @@
 :root {
   --background: #15171e;
   --foreground: #ffffff;
+  --blue: #0452e1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-ui-blue: var(--blue);
   --font-anek: var(--font-anek-latin);
   --font-inter: var(--font-inter);
 }

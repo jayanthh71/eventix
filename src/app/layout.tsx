@@ -24,9 +24,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${anek.variable} antialiased`}>
+      <body
+        className={`${inter.variable} ${anek.variable} flex min-h-screen flex-col antialiased`}
+      >
         <Header />
-        {children}
+        <main className="flex-1 pt-20">{children}</main>
       </body>
     </html>
   );

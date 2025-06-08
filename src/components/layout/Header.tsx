@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function Header() {
   return (
-    <header className="border-b border-b-gray-700/50 backdrop-blur-sm">
-      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-8 font-extrabold text-white">
+    <header className="fixed top-0 right-0 left-0 z-50 border-b border-b-gray-700/50 backdrop-blur-sm">
+      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-8 font-extrabold">
         <button className="font-anek text-4xl">
           <Link href="/">Eventix</Link>
         </button>
