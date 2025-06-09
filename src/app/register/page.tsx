@@ -1,14 +1,20 @@
 "use client";
 
-import { Role } from "@/lib/types";
+import { Role } from "@prisma/client";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function Login() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("customer");
+export default function Register() {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: Role.CUSTOMER as Role,
+  });
+
+  const updateField = (field: keyof typeof formData, value: string | Role) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center px-4 sm:px-6">
@@ -28,8 +34,8 @@ export default function Login() {
           Name
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={formData.name}
+            onChange={(e) => updateField("name", e.target.value)}
             placeholder="Enter your name"
             className="w-full rounded-lg bg-gray-800 p-2 text-sm sm:p-3 sm:text-base"
             required
@@ -40,20 +46,19 @@ export default function Login() {
           Email
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={(e) => updateField("email", e.target.value)}
             placeholder="Enter your email"
             className="w-full rounded-lg bg-gray-800 p-2 text-sm sm:p-3 sm:text-base"
             required
-            autoFocus
           />
         </label>
         <label className="font-inter flex flex-col gap-1 text-white sm:gap-2">
           Password
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={(e) => updateField("password", e.target.value)}
             placeholder="Enter your password"
             className="w-full rounded-lg bg-gray-800 p-2 text-sm sm:p-3 sm:text-base"
             required
@@ -64,9 +69,9 @@ export default function Login() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setRole("customer")}
+              onClick={() => updateField("role", Role.CUSTOMER)}
               className={`flex-1 cursor-pointer rounded-lg p-2 text-sm font-semibold transition-colors sm:p-3 sm:text-base ${
-                role === "customer"
+                formData.role === Role.CUSTOMER
                   ? "bg-ui-blue text-white"
                   : "bg-gray-800 text-white hover:bg-gray-700"
               }`}
@@ -75,9 +80,9 @@ export default function Login() {
             </button>
             <button
               type="button"
-              onClick={() => setRole("vendor")}
+              onClick={() => updateField("role", Role.VENDOR)}
               className={`flex-1 cursor-pointer rounded-lg p-2 text-sm font-semibold transition-colors sm:p-3 sm:text-base ${
-                role === "vendor"
+                formData.role === Role.VENDOR
                   ? "bg-ui-blue text-white"
                   : "bg-gray-800 text-white hover:bg-gray-700"
               }`}
