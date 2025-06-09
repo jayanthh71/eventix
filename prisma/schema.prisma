@@ -15,9 +15,8 @@ datasource db {
 }
 
 enum Role {
-  USER
+  CUSTOMER
   VENDOR
-  ADMIN
 }
 
 model User {
@@ -25,7 +24,7 @@ model User {
   name     String
   email    String  @unique
   password String
-  role     Role    @default(USER)
+  role     Role    @default(CUSTOMER)
   balance  Float   @default(1000)
   imageUrl String?
 
