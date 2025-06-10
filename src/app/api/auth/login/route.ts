@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -32,6 +34,26 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
+
+    if (!process.env.JWT_SECRET) {
+      return NextResponse.json(
+        { error: "JWT secret is not configured" },
+        { status: 500 },
+      );
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    (await cookies()).set("token", token, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
 
     return NextResponse.json(
       {
