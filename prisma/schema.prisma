@@ -31,3 +31,22 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+enum EventCategory {
+  MOVIE
+  CONCERT
+}
+
+model Event {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  imageUrl    String?
+  date        DateTime
+  location    String
+  price       Float
+  category    EventCategory
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

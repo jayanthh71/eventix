@@ -16,6 +16,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const roleUpper = role.toUpperCase();
+  if (roleUpper !== "CUSTOMER" && roleUpper !== "VENDOR") {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
   try {
     const userExists = await prisma.user.findUnique({
       where: { email },
@@ -34,7 +39,7 @@ export async function POST(request: NextRequest) {
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
-        role: role.toUpperCase() === "CUSTOMER" ? Role.CUSTOMER : Role.VENDOR,
+        role: roleUpper === "CUSTOMER" ? Role.CUSTOMER : Role.VENDOR,
       },
     });
 
