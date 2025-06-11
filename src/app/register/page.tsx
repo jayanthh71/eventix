@@ -3,9 +3,10 @@
 import handleRegister from "@/lib/auth/handleRegister";
 import { Role } from "@prisma/client";
 import Link from "next/link";
-import { useState } from "react";
+import { redirect, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function Register() {
+function RegisterForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -14,6 +15,8 @@ export default function Register() {
   });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const redirectUrl = useSearchParams().get("redirect") || "/";
 
   const updateField = (field: keyof typeof formData, value: string | Role) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -32,7 +35,7 @@ export default function Register() {
     );
 
     if (result.success) {
-      console.log("Registration successful:", result.data);
+      redirect(redirectUrl);
     } else {
       if (result.status === 400) {
         setError("Please fill in all fields.");
@@ -145,5 +148,19 @@ export default function Register() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function Register() {
+  return (
+    <Suspense
+      fallback={
+        <div className="font-anek flex min-h-[calc(100vh-5rem)] items-center justify-center text-2xl font-bold text-white">
+          Loading...
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

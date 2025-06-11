@@ -6,6 +6,7 @@ export default async function handleLogin(email: string, password: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
+      credentials: "include",
     });
 
     const data = await response.json();
@@ -23,6 +24,7 @@ export default async function handleLogin(email: string, password: string) {
       data,
     };
   } catch (error) {
+    console.error("Login error:", error);
     return {
       success: false,
       status: 500,

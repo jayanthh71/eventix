@@ -2,15 +2,18 @@
 
 import handleLogin from "@/lib/auth/handleLogin";
 import Link from "next/link";
-import { useState } from "react";
+import { redirect, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function Login() {
+function LoginForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const redirectUrl = useSearchParams().get("redirect") || "/";
 
   const updateField = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -24,7 +27,7 @@ export default function Login() {
     const result = await handleLogin(formData.email, formData.password);
 
     if (result.success) {
-      console.log("Login successful:", result.data);
+      redirect(redirectUrl);
     } else {
       if (result.status === 401) {
         setError("Invalid email or password. Please try again.");
@@ -106,5 +109,19 @@ export default function Login() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense
+      fallback={
+        <div className="font-anek flex min-h-[calc(100vh-5rem)] items-center justify-center text-2xl font-bold text-white">
+          Loading...
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }
