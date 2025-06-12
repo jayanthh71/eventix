@@ -17,10 +17,10 @@ export default function EventCard(event: Event) {
       />
       <div className="font-anek p-4 text-white">
         <h3 className="text-lg font-semibold">{event.title}</h3>
-        <p className="text-sm text-gray-500">{event.location}</p>
+        <p className="text-sm font-medium text-gray-500">{event.location}</p>
         <div className="flex justify-between">
           <p className="mt-2 font-bold">₹{event.price.toFixed(2)}</p>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm font-medium text-gray-500">
             {new Date(event.date).toLocaleDateString("en-US", {
               weekday: "short",
               month: "short",

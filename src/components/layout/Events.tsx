@@ -1,3 +1,4 @@
+import UpcomingEvents from "@/components/layout/UpcomingEvents";
 import EventCard from "@/components/ui/EventCard";
 import { Event } from "@prisma/client";
 import Link from "next/link";
@@ -104,11 +105,14 @@ export default async function Events() {
       updatedAt: new Date("2025-06-11T21:29:47.060Z"),
     },
   ];
-  // const movies = await getEvents(EventCategory.MOVIE);
-  // const concerts = await getEvents(EventCategory.CONCERT);
+
+  // const movies = await getEvents(EventCategory.MOVIE, "createdAt", 4);
+  // const concerts = await getEvents(EventCategory.CONCERT, "createdAt", 4);
 
   return (
     <div className="flex w-full flex-col gap-12 p-12">
+      <UpcomingEvents />
+
       <section className="font-anek flex flex-col gap-8 fill-white text-white">
         <div className="flex items-center justify-between">
           <Link
@@ -126,7 +130,7 @@ export default async function Events() {
             </svg>
           </Link>
           <Link
-            className="flex items-center hover:fill-gray-400 hover:text-gray-400"
+            className="flex items-center font-medium hover:fill-gray-400 hover:text-gray-400"
             href="/movies"
           >
             Show all
@@ -170,7 +174,7 @@ export default async function Events() {
             </svg>
           </Link>
           <Link
-            className="flex items-center hover:fill-gray-400 hover:text-gray-400"
+            className="flex items-center font-medium hover:fill-gray-400 hover:text-gray-400"
             href="/concerts"
           >
             Show all
