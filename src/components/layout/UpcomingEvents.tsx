@@ -134,11 +134,36 @@ export default function UpcomingEvents() {
     { value: "BOTH" as const, label: "All Categories" },
     { value: "MOVIE" as const, label: "Movies" },
     { value: "CONCERT" as const, label: "Concerts" },
+    { value: "TRAIN" as const, label: "Trains" },
   ];
 
   const selectedOption = filterOptions.find(
     (option) => option.value === filterBy,
   );
+
+  const scrollToTrains = () => {
+    const trainsSection = document.getElementById("trains");
+    if (trainsSection) {
+      const headerHeight = 80;
+      const elementPosition =
+        trainsSection.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - headerHeight - 20;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const handleFilterChange = (value: EventCategory | "BOTH" | "TRAIN") => {
+    if (value === "TRAIN") {
+      scrollToTrains();
+    } else {
+      setFilterBy(value as EventCategory | "BOTH");
+    }
+    setIsDropdownOpen(false);
+  };
 
   return (
     <section className="font-anek flex flex-col gap-8 fill-white text-white">
@@ -185,10 +210,7 @@ export default function UpcomingEvents() {
               {filterOptions.map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => {
-                    setFilterBy(option.value);
-                    setIsDropdownOpen(false);
-                  }}
+                  onClick={() => handleFilterChange(option.value)}
                   className={`flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg hover:bg-gray-700 ${
                     filterBy === option.value
                       ? "bg-gray-700 text-white"

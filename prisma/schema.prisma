@@ -20,7 +20,7 @@ enum Role {
 }
 
 model User {
-  id       String  @id @default(uuid())
+  id       String  @id @default(cuid())
   name     String
   email    String  @unique
   password String
@@ -38,7 +38,7 @@ enum EventCategory {
 }
 
 model Event {
-  id          String        @id @default(uuid())
+  id          String        @id @default(cuid())
   title       String
   description String
   imageUrl    String?
@@ -46,6 +46,21 @@ model Event {
   location    String
   price       Float
   category    EventCategory
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Train {
+  id        String   @id @default(cuid())
+  name      String
+  number    String
+  imageUrl  String?
+  departure DateTime
+  arrival   DateTime
+  from      String
+  to        String
+  price     Float
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

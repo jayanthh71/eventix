@@ -1,6 +1,7 @@
 import UpcomingEvents from "@/components/layout/UpcomingEvents";
 import EventCard from "@/components/ui/EventCard";
-import { Event } from "@prisma/client";
+import TrainCard from "@/components/ui/TrainCard";
+import { Event, Train } from "@prisma/client";
 import Link from "next/link";
 
 export default async function Events() {
@@ -105,9 +106,51 @@ export default async function Events() {
       updatedAt: new Date("2025-06-11T21:29:47.060Z"),
     },
   ];
+  const trains: Train[] = [
+    {
+      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb292",
+      name: "Rockfort SF Express",
+      number: "12653",
+      from: "MS-Chennai Egmore",
+      to: "TPJ-Tiruchirappalli Junction",
+      arrival: new Date("2025-06-10T18:29:12.119Z"),
+      departure: new Date("2025-06-10T18:29:12.119Z"),
+      price: 650,
+      imageUrl: null,
+      createdAt: new Date("2025-06-11T21:29:47.060Z"),
+      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
+    },
+    {
+      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb293",
+      name: "Tejas Express",
+      number: "22671",
+      from: "MS-Chennai Egmore",
+      to: "TPJ-Tiruchirappalli Junction",
+      arrival: new Date("2025-06-10T18:29:12.119Z"),
+      departure: new Date("2025-06-10T18:29:12.119Z"),
+      price: 850,
+      imageUrl: null,
+      createdAt: new Date("2025-06-11T21:29:47.060Z"),
+      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
+    },
+    {
+      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb294",
+      name: "Chozhan Express",
+      number: "22675",
+      from: "MS-Chennai Egmore",
+      to: "TPJ-Tiruchirappalli Junction",
+      arrival: new Date("2025-06-10T18:29:12.119Z"),
+      departure: new Date("2025-06-10T18:29:12.119Z"),
+      price: 500,
+      imageUrl: null,
+      createdAt: new Date("2025-06-11T21:29:47.060Z"),
+      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
+    },
+  ];
 
   // const movies = await getEvents(EventCategory.MOVIE, "createdAt", 4);
   // const concerts = await getEvents(EventCategory.CONCERT, "createdAt", 4);
+  // const trains = await getTrains(4);
 
   return (
     <div className="flex w-full flex-col gap-12 p-12">
@@ -197,6 +240,53 @@ export default async function Events() {
         ) : (
           <div className="flex items-center justify-center text-xl font-semibold">
             No concerts found
+          </div>
+        )}
+      </section>
+
+      <section
+        id="trains"
+        className="font-anek flex flex-col gap-8 fill-white text-white"
+      >
+        <div className="flex items-center justify-between">
+          <Link
+            className="flex items-center text-2xl font-semibold hover:fill-gray-400 hover:text-gray-400"
+            href="/trains"
+          >
+            Book Trains
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              height="24px"
+              viewBox="0 -960 960 960"
+              width="24px"
+            >
+              <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
+            </svg>
+          </Link>
+          <Link
+            className="flex items-center font-medium hover:fill-gray-400 hover:text-gray-400"
+            href="/trains"
+          >
+            Show all
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              height="24px"
+              viewBox="0 -960 960 960"
+              width="24px"
+            >
+              <path d="M504-480 320-664l56-56 240 240-240 240-56-56 184-184Z" />
+            </svg>
+          </Link>
+        </div>
+        {trains && trains.length ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {trains.map((train) => (
+              <TrainCard key={train.id} {...train} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center text-xl font-semibold">
+            No trains found
           </div>
         )}
       </section>
