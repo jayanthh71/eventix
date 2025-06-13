@@ -1,4 +1,5 @@
 import Header from "@/components/layout/Header";
+import { ReactQueryProvider } from "@/lib/react-query";
 import type { Metadata } from "next";
 import { Anek_Latin, Inter } from "next/font/google";
 import "./globals.css";
@@ -27,8 +28,10 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${anek.variable} flex min-h-screen flex-col antialiased`}
       >
-        <Header />
-        <main className="flex-1 pt-20">{children}</main>
+        <ReactQueryProvider>
+          <Header />
+          <main className="flex-1 pt-20">{children}</main>
+        </ReactQueryProvider>
       </body>
     </html>
   );

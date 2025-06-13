@@ -1,6 +1,6 @@
 "use client";
 
-import useAuth from "@/lib/auth/useAuth";
+import useAuth from "@/lib/hooks/useAuth";
 import Image from "next/image";
 import Link from "next/link";
 

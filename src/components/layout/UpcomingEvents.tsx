@@ -1,121 +1,23 @@
 "use client";
 
+import ErrorMessage from "@/components/ui/ErrorMessage";
 import EventCard from "@/components/ui/EventCard";
-import { Event, EventCategory } from "@prisma/client";
+import LoadingIndicator from "@/components/ui/LoadingIndicator";
+import { useUpcomingEvents } from "@/lib/hooks/useData";
+import { EventCategory } from "@prisma/client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 export default function UpcomingEvents() {
-  const [events, setEvents] = useState<Event[]>([]);
   const [filterBy, setFilterBy] = useState<EventCategory | "BOTH">("BOTH");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function fetchEvents() {
-      const fetchedEvents: Event[] = [
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb284",
-          title: "The First Movie",
-          description: "This is an amazing movie, pretty cool and long",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "City Center Deira",
-          price: 120,
-          category: "MOVIE",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb288",
-          title: "The First Concert",
-          description: "This is an amazing concert, pretty cool and loud",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "Coca Cola Arena",
-          price: 120,
-          category: "CONCERT",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb285",
-          title: "The Second Movie",
-          description: "This is an amazing movie, pretty cool and long",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "LA Maris",
-          price: 120,
-          category: "MOVIE",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb289",
-          title: "The Second Concert",
-          description: "This is an amazing concert, pretty cool and loud",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "Expo City",
-          price: 120,
-          category: "CONCERT",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb290",
-          title: "The Third Concert",
-          description: "This is an amazing concert, pretty cool and loud",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "Coca Cola Arena",
-          price: 120,
-          category: "CONCERT",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb286",
-          title: "The Third Movie",
-          description: "This is an amazing movie, pretty cool and long",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "BHELEC Cinema",
-          price: 120,
-          category: "MOVIE",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb291",
-          title: "The Fourth Concert",
-          description: "This is an amazing concert, pretty cool and loud",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "Expo City",
-          price: 120,
-          category: "CONCERT",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-        {
-          id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb287",
-          title: "The Fourth Movie",
-          description: "This is an amazing movie, pretty cool and long",
-          imageUrl: null,
-          date: new Date("2025-06-10T18:29:12.119Z"),
-          location: "Dubai Mall",
-          price: 120,
-          category: "MOVIE",
-          createdAt: new Date("2025-06-11T21:29:47.060Z"),
-          updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-        },
-      ];
-      // const fetchedEvents = await getEvents(filterBy, "date", 8);
-      setEvents(fetchedEvents);
-    }
-    fetchEvents();
-  }, [filterBy]);
+  const {
+    data: events = [],
+    isLoading,
+    error,
+  } = useUpcomingEvents(filterBy, 8);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -225,14 +127,18 @@ export default function UpcomingEvents() {
         </div>
       </div>
 
-      {events && events.length ? (
+      {isLoading ? (
+        <LoadingIndicator text="Loading events..." />
+      ) : error ? (
+        <ErrorMessage message="Failed to load events" />
+      ) : events && events.length ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {events.map((event) => (
             <EventCard key={event.id} {...event} />
           ))}
         </div>
       ) : (
-        <div className="flex items-center justify-center text-xl font-semibold">
+        <div className="font-anek flex items-center justify-center text-xl font-semibold text-white">
           No events found
         </div>
       )}

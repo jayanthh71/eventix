@@ -90,3 +90,23 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const take = parseInt(searchParams.get("take") || "50");
+
+  try {
+    const trains = await prisma.train.findMany({
+      orderBy: { departure: "asc" },
+      take: Math.min(take, 100),
+    });
+
+    return NextResponse.json(trains, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching trains:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch trains" },
+      { status: 500 },
+    );
+  }
+}

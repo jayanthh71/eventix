@@ -61,22 +61,42 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const category = request.nextUrl.searchParams.get("category")?.toUpperCase();
+  const searchParams = request.nextUrl.searchParams;
+  const category = searchParams.get("category")?.toUpperCase() || "BOTH";
+  const sortBy = searchParams.get("sortBy") || "date";
+  const take = parseInt(searchParams.get("take") || "50");
 
-  if (!category || (category !== "MOVIE" && category !== "CONCERT")) {
+  if (sortBy !== "date" && sortBy !== "createdAt") {
     return NextResponse.json(
-      { error: "Invalid or missing category" },
+      { error: "sortBy must be 'date' or 'createdAt'" },
+      { status: 400 },
+    );
+  }
+
+  if (category !== "BOTH" && category !== "MOVIE" && category !== "CONCERT") {
+    return NextResponse.json(
+      { error: "category must be 'BOTH', 'MOVIE', or 'CONCERT'" },
       { status: 400 },
     );
   }
 
   try {
+    const whereClause =
+      category === "BOTH"
+        ? {}
+        : {
+            category:
+              category === "MOVIE"
+                ? EventCategory.MOVIE
+                : EventCategory.CONCERT,
+          };
+
     const events = await prisma.event.findMany({
-      where: {
-        category:
-          category === "MOVIE" ? EventCategory.MOVIE : EventCategory.CONCERT,
+      where: whereClause,
+      orderBy: {
+        [sortBy]: sortBy === "createdAt" ? "desc" : "asc",
       },
-      orderBy: { date: "asc" },
+      take: Math.min(take, 100),
     });
 
     return NextResponse.json(events, { status: 200 });

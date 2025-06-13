@@ -1,58 +1,35 @@
 "use client";
 
+import ErrorMessage from "@/components/ui/ErrorMessage";
+import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import TrainCard from "@/components/ui/TrainCard";
-import { Train } from "@prisma/client";
-import { useState } from "react";
+import { useTrains } from "@/lib/hooks/useData";
+import { useMemo, useState } from "react";
 
 export default function Trains() {
   const [searchQuery, setSearchQuery] = useState("");
   const [displayedCount, setDisplayedCount] = useState(12);
 
-  const trains: Train[] = [
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb292",
-      name: "Rockfort SF Express",
-      number: "12653",
-      from: "MS-Chennai Egmore",
-      to: "TPJ-Tiruchirappalli Junction",
-      arrival: new Date("2025-06-10T18:29:12.119Z"),
-      departure: new Date("2025-06-10T18:29:12.119Z"),
-      price: 650,
-      imageUrl: null,
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb293",
-      name: "Tejas Express",
-      number: "22671",
-      from: "MS-Chennai Egmore",
-      to: "TPJ-Tiruchirappalli Junction",
-      arrival: new Date("2025-06-10T18:29:12.119Z"),
-      departure: new Date("2025-06-10T18:29:12.119Z"),
-      price: 850,
-      imageUrl: null,
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb294",
-      name: "Chozhan Express",
-      number: "22675",
-      from: "MS-Chennai Egmore",
-      to: "TPJ-Tiruchirappalli Junction",
-      arrival: new Date("2025-06-10T18:29:12.119Z"),
-      departure: new Date("2025-06-10T18:29:12.119Z"),
-      price: 500,
-      imageUrl: null,
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-  ];
+  const { data: allTrains = [], isLoading, error } = useTrains(25);
 
-  const hasMoreTrains = displayedCount < trains.length;
+  const filteredTrains = useMemo(() => {
+    if (!searchQuery.trim()) return allTrains;
+
+    const query = searchQuery.toLowerCase();
+    return allTrains.filter(
+      (train) =>
+        train.name.toLowerCase().includes(query) ||
+        train.number.toLowerCase().includes(query) ||
+        train.from.toLowerCase().includes(query) ||
+        train.to.toLowerCase().includes(query),
+    );
+  }, [allTrains, searchQuery]);
+
+  const displayedTrains = filteredTrains.slice(0, displayedCount);
+  const hasMoreTrains = displayedCount < filteredTrains.length;
 
   const handleShowMore = () => {
+    setSearchQuery("");
     setDisplayedCount((prev) => prev + 12);
   };
 
@@ -63,46 +40,52 @@ export default function Trains() {
           <h1 className="text-3xl font-bold">Book Trains</h1>
         </div>
 
-        <div className="font-anek flex justify-center">
-          <div className="relative w-full max-w-md">
-            <input
-              type="text"
-              placeholder="Search trains"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="focus:ring-opacity-50 w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 pl-10 font-medium text-white placeholder-gray-400 transition-all duration-200 hover:bg-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-            <svg
-              className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        {!isLoading && !error && (
+          <div className="font-anek flex justify-center">
+            <div className="relative w-full max-w-md">
+              <input
+                type="text"
+                placeholder="Search trains"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="focus:ring-opacity-50 w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 pl-10 font-medium text-white placeholder-gray-400 transition-all duration-200 hover:bg-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
-            </svg>
+              <svg
+                className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
           </div>
-        </div>
+        )}
 
         <section className="font-anek flex flex-col gap-6">
-          {trains && trains.length ? (
+          {isLoading ? (
+            <LoadingIndicator text="Loading trains..." />
+          ) : error ? (
+            <ErrorMessage message="Failed to load trains" />
+          ) : displayedTrains && displayedTrains.length ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {trains.map((train) => (
+              {displayedTrains.map((train) => (
                 <TrainCard key={train.id} {...train} />
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center text-xl font-semibold">
-              No trains found
+            <div className="font-anek flex items-center justify-center text-xl font-semibold text-white">
+              {searchQuery ? "No trains match your search" : "No trains found"}
             </div>
           )}
         </section>
 
-        {hasMoreTrains && (
+        {hasMoreTrains && !searchQuery && !isLoading && !error && (
           <div className="flex justify-center">
             <button
               onClick={handleShowMore}

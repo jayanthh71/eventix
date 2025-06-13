@@ -1,156 +1,29 @@
+"use client";
+
 import UpcomingEvents from "@/components/layout/UpcomingEvents";
+import ErrorMessage from "@/components/ui/ErrorMessage";
 import EventCard from "@/components/ui/EventCard";
+import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import TrainCard from "@/components/ui/TrainCard";
-import { Event, Train } from "@prisma/client";
+import { useConcerts, useMovies, useTrains } from "@/lib/hooks/useData";
 import Link from "next/link";
 
-export default async function Events() {
-  // Temporary hardcoded data
-  const movies: Event[] = [
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb284",
-      title: "The First Movie",
-      description: "This is an amazing movie, pretty cool and long",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "City Center Deira",
-      price: 120,
-      category: "MOVIE",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb285",
-      title: "The Second Movie",
-      description: "This is an amazing movie, pretty cool and long",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "LA Maris",
-      price: 120,
-      category: "MOVIE",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb286",
-      title: "The Third Movie",
-      description: "This is an amazing movie, pretty cool and long",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "BHELEC Cinema",
-      price: 120,
-      category: "MOVIE",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb287",
-      title: "The Fourth Movie",
-      description: "This is an amazing movie, pretty cool and long",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "Dubai Mall",
-      price: 120,
-      category: "MOVIE",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-  ];
-  const concerts: Event[] = [
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb288",
-      title: "The First Concert",
-      description: "This is an amazing concert, pretty cool and loud",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "Coca Cola Arena",
-      price: 120,
-      category: "CONCERT",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb289",
-      title: "The Second Concert",
-      description: "This is an amazing concert, pretty cool and loud",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "Expo City",
-      price: 120,
-      category: "CONCERT",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb290",
-      title: "The Third Concert",
-      description: "This is an amazing concert, pretty cool and loud",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "Coca Cola Arena",
-      price: 120,
-      category: "CONCERT",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb291",
-      title: "The Fourth Concert",
-      description: "This is an amazing concert, pretty cool and loud",
-      imageUrl: null,
-      date: new Date("2025-06-10T18:29:12.119Z"),
-      location: "Expo City",
-      price: 120,
-      category: "CONCERT",
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-  ];
-  const trains: Train[] = [
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb292",
-      name: "Rockfort SF Express",
-      number: "12653",
-      from: "MS-Chennai Egmore",
-      to: "TPJ-Tiruchirappalli Junction",
-      arrival: new Date("2025-06-10T18:29:12.119Z"),
-      departure: new Date("2025-06-10T18:29:12.119Z"),
-      price: 650,
-      imageUrl: null,
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb293",
-      name: "Tejas Express",
-      number: "22671",
-      from: "MS-Chennai Egmore",
-      to: "TPJ-Tiruchirappalli Junction",
-      arrival: new Date("2025-06-10T18:29:12.119Z"),
-      departure: new Date("2025-06-10T18:29:12.119Z"),
-      price: 850,
-      imageUrl: null,
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-    {
-      id: "92c82ccf-c602-4b5b-b0dd-d7cb59ccb294",
-      name: "Chozhan Express",
-      number: "22675",
-      from: "MS-Chennai Egmore",
-      to: "TPJ-Tiruchirappalli Junction",
-      arrival: new Date("2025-06-10T18:29:12.119Z"),
-      departure: new Date("2025-06-10T18:29:12.119Z"),
-      price: 500,
-      imageUrl: null,
-      createdAt: new Date("2025-06-11T21:29:47.060Z"),
-      updatedAt: new Date("2025-06-11T21:29:47.060Z"),
-    },
-  ];
-
-  // const movies = await getEvents(EventCategory.MOVIE, "createdAt", 4);
-  // const concerts = await getEvents(EventCategory.CONCERT, "createdAt", 4);
-  // const trains = await getTrains(4);
+export default function Events() {
+  const {
+    data: movies = [],
+    isLoading: moviesLoading,
+    error: moviesError,
+  } = useMovies(4);
+  const {
+    data: concerts = [],
+    isLoading: concertsLoading,
+    error: concertsError,
+  } = useConcerts(4);
+  const {
+    data: trains = [],
+    isLoading: trainsLoading,
+    error: trainsError,
+  } = useTrains(3);
 
   return (
     <div className="flex w-full flex-col gap-12 p-12">
@@ -187,14 +60,18 @@ export default async function Events() {
             </svg>
           </Link>
         </div>
-        {movies && movies.length ? (
+        {moviesLoading ? (
+          <LoadingIndicator text="Loading movies..." />
+        ) : moviesError ? (
+          <ErrorMessage message="Failed to load movies" />
+        ) : movies && movies.length ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {movies.map((movie) => (
               <EventCard key={movie.id} {...movie} />
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center text-xl font-semibold">
+          <div className="font-anek flex items-center justify-center text-xl font-semibold text-white">
             No movies found
           </div>
         )}
@@ -231,14 +108,18 @@ export default async function Events() {
             </svg>
           </Link>
         </div>
-        {concerts && concerts.length ? (
+        {concertsLoading ? (
+          <LoadingIndicator text="Loading concerts..." />
+        ) : concertsError ? (
+          <ErrorMessage message="Failed to load concerts" />
+        ) : concerts && concerts.length ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {concerts.map((concert) => (
               <EventCard key={concert.id} {...concert} />
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center text-xl font-semibold">
+          <div className="font-anek flex items-center justify-center text-xl font-semibold text-white">
             No concerts found
           </div>
         )}
@@ -278,14 +159,18 @@ export default async function Events() {
             </svg>
           </Link>
         </div>
-        {trains && trains.length ? (
+        {trainsLoading ? (
+          <LoadingIndicator text="Loading trains..." />
+        ) : trainsError ? (
+          <ErrorMessage message="Failed to load trains" />
+        ) : trains && trains.length ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {trains.map((train) => (
               <TrainCard key={train.id} {...train} />
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center text-xl font-semibold">
+          <div className="font-anek flex items-center justify-center text-xl font-semibold text-white">
             No trains found
           </div>
         )}
