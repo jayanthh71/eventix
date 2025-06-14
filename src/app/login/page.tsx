@@ -1,6 +1,7 @@
 "use client";
 
 import handleLogin from "@/lib/auth/handleLogin";
+import useAuth from "@/lib/hooks/useAuth";
 import Link from "next/link";
 import { redirect, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -12,6 +13,7 @@ function LoginForm() {
   });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const { updateUser } = useAuth();
 
   const redirectUrl = useSearchParams().get("redirect") || "/";
 
@@ -27,6 +29,7 @@ function LoginForm() {
     const result = await handleLogin(formData.email, formData.password);
 
     if (result.success) {
+      updateUser(result.data);
       redirect(redirectUrl);
     } else {
       if (result.status === 401) {

@@ -1,6 +1,7 @@
 "use client";
 
 import handleRegister from "@/lib/auth/handleRegister";
+import useAuth from "@/lib/hooks/useAuth";
 import { Role } from "@prisma/client";
 import Link from "next/link";
 import { redirect, useSearchParams } from "next/navigation";
@@ -15,6 +16,7 @@ function RegisterForm() {
   });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const { updateUser } = useAuth();
 
   const redirectUrl = useSearchParams().get("redirect") || "/";
 
@@ -35,6 +37,7 @@ function RegisterForm() {
     );
 
     if (result.success) {
+      updateUser(result.data);
       redirect(redirectUrl);
     } else {
       if (result.status === 400) {
