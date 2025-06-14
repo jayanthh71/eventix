@@ -1,9 +1,13 @@
 import { Train } from "@prisma/client";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function TrainCard(train: Train) {
   return (
-    <div className="cursor-pointer rounded-lg bg-black transition-transform select-none hover:scale-105 hover:drop-shadow-lg">
+    <Link
+      href={`/trains/${train.id}`}
+      className="rounded-lg bg-black transition-transform select-none hover:scale-105 hover:drop-shadow-lg"
+    >
       <Image
         src={train.imageUrl || "/train.jpg"}
         alt={train.name}
@@ -65,6 +69,6 @@ export default function TrainCard(train: Train) {
           </p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

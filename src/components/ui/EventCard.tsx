@@ -1,9 +1,13 @@
 import { Event, EventCategory } from "@prisma/client";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function EventCard(event: Event) {
   return (
-    <div className="cursor-pointer rounded-lg bg-black transition-transform select-none hover:scale-105 hover:drop-shadow-lg">
+    <Link
+      href={`/${event.category.toLowerCase()}s/${event.id}`}
+      className="rounded-lg bg-black transition-transform select-none hover:scale-105 hover:drop-shadow-lg"
+    >
       <Image
         src={
           event.imageUrl || event.category === EventCategory.MOVIE
@@ -29,6 +33,6 @@ export default function EventCard(event: Event) {
           </p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

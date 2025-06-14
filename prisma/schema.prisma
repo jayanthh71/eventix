@@ -28,6 +28,8 @@ model User {
   balance  Float   @default(1000)
   imageUrl String?
 
+  bookings Booking[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -43,9 +45,12 @@ model Event {
   description String
   imageUrl    String?
   date        DateTime
+  showtimes   DateTime[]
   location    String
   price       Float
   category    EventCategory
+
+  bookings Booking[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,6 +66,32 @@ model Train {
   from      String
   to        String
   price     Float
+
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  userId     String
+  eventId    String?
+  trainId    String?
+  quantity   Int
+  totalPrice Float
+  time       DateTime
+  status     BookingStatus @default(PENDING)
+
+  user  User   @relation(fields: [userId], references: [id])
+  event Event? @relation(fields: [eventId], references: [id])
+  train Train? @relation(fields: [trainId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
