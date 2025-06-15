@@ -87,11 +87,11 @@ export default function UpcomingEvents() {
         <div className="relative w-full sm:w-auto" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="hover:border-ui-blue focus:border-ui-blue focus:ring-ui-blue focus:ring-opacity-50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 font-medium text-white transition-all duration-200 hover:bg-gray-700 focus:ring-2 focus:outline-none sm:w-auto"
+            className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-600/50 bg-gradient-to-r from-gray-800/80 to-gray-700/80 px-4 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 hover:from-gray-700/80 hover:to-gray-600/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none sm:w-auto"
           >
             <span>{selectedOption?.label}</span>
             <svg
-              className={`h-4 w-4 transition-transform duration-200 ${
+              className={`h-5 w-5 transition-transform duration-200 ${
                 isDropdownOpen ? "rotate-180" : ""
               }`}
               fill="none"
@@ -108,14 +108,14 @@ export default function UpcomingEvents() {
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute top-12 right-0 z-10 w-full min-w-[160px] rounded-lg border border-gray-600 bg-gray-800 font-medium shadow-lg sm:w-max">
+            <div className="absolute top-14 right-0 z-10 w-full min-w-[160px] rounded-xl border border-gray-600/50 bg-gray-800/90 font-medium shadow-2xl backdrop-blur-sm sm:w-max">
               {filterOptions.map((option) => (
                 <button
                   key={option.value}
                   onClick={() => handleFilterChange(option.value)}
-                  className={`flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg hover:bg-gray-700 ${
+                  className={`flex w-full cursor-pointer items-center px-4 py-3 text-left transition-all duration-200 first:rounded-t-xl last:rounded-b-xl hover:bg-gradient-to-r hover:from-indigo-600/20 hover:to-purple-600/20 ${
                     filterBy === option.value
-                      ? "bg-gray-700 text-white"
+                      ? "bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-white"
                       : "text-white"
                   }`}
                 >

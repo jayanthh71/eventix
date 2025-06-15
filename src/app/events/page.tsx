@@ -73,7 +73,7 @@ export default function Events() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-5rem)] justify-center px-4 sm:px-6">
+    <div className="flex min-h-[calc(100vh-5rem)] justify-center bg-gray-900 px-4 sm:px-6">
       <div className="flex w-full flex-col gap-8 p-12">
         <div className="font-anek flex flex-col items-center gap-4 text-white">
           <h1 className="text-3xl font-bold">Upcoming Events</h1>
@@ -88,10 +88,10 @@ export default function Events() {
                 placeholder="Search events"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="focus:ring-opacity-50 w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 pl-10 font-medium text-white placeholder-gray-400 transition-all duration-200 hover:bg-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full rounded-xl border border-gray-600/50 bg-gradient-to-r from-gray-800/80 to-gray-700/80 px-4 py-3 pl-12 font-medium text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 hover:from-gray-700/80 hover:to-gray-600/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
               />
               <svg
-                className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+                className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400 transition-colors duration-200"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -108,11 +108,11 @@ export default function Events() {
               <div className="relative w-full md:w-auto" ref={dropdownRef}>
                 <button
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="hover:border-ui-blue focus:border-ui-blue focus:ring-ui-blue focus:ring-opacity-50 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-600 bg-gray-800 px-4 py-2 font-medium text-white transition-all duration-200 hover:bg-gray-700 focus:ring-2 focus:outline-none md:w-auto"
+                  className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-gray-600/50 bg-gradient-to-r from-gray-800/80 to-gray-700/80 px-4 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 hover:from-gray-700/80 hover:to-gray-600/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none md:w-auto"
                 >
                   <span>{selectedOption?.label}</span>
                   <svg
-                    className={`h-4 w-4 transition-transform duration-200 ${
+                    className={`h-5 w-5 transition-transform duration-200 ${
                       isDropdownOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -129,14 +129,14 @@ export default function Events() {
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute top-12 left-0 z-10 w-full min-w-[160px] rounded-lg border border-gray-600 bg-gray-800 font-medium shadow-lg sm:w-max">
+                  <div className="absolute top-14 left-0 z-10 w-full min-w-[160px] rounded-xl border border-gray-600/50 bg-gray-800/90 font-medium shadow-2xl backdrop-blur-sm sm:w-max">
                     {filterOptions.map((option) => (
                       <button
                         key={option.value}
                         onClick={() => handleFilterChange(option.value)}
-                        className={`flex w-full cursor-pointer items-center px-4 py-3 text-left transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg hover:bg-gray-700 ${
+                        className={`flex w-full cursor-pointer items-center px-4 py-3 text-left transition-all duration-200 first:rounded-t-xl last:rounded-b-xl hover:bg-gradient-to-r hover:from-indigo-600/20 hover:to-purple-600/20 ${
                           selectedCategory === option.value
-                            ? "bg-gray-700 text-white"
+                            ? "bg-gradient-to-r from-indigo-600/30 to-purple-600/30 text-white"
                             : "text-white"
                         }`}
                       >
@@ -172,7 +172,7 @@ export default function Events() {
           <div className="flex justify-center">
             <button
               onClick={handleShowMore}
-              className="focus:ring-opacity-50 font-anek cursor-pointer rounded-lg bg-gray-800 px-6 py-2 font-medium text-white transition-all duration-200 hover:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-indigo-600/80 to-purple-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-indigo-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
             >
               Show More
             </button>

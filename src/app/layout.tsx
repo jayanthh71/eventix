@@ -1,13 +1,9 @@
 import Header from "@/components/layout/Header";
 import { ReactQueryProvider } from "@/lib/react-query";
 import type { Metadata } from "next";
-import { Anek_Latin, Inter } from "next/font/google";
+import { Anek_Latin } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 const anek = Anek_Latin({
   subsets: ["latin"],
   variable: "--font-anek-latin",
@@ -26,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${anek.variable} flex min-h-screen flex-col antialiased`}
+        className={`${anek.variable} flex min-h-screen flex-col antialiased`}
       >
         <ReactQueryProvider>
           <Header />

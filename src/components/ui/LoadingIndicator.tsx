@@ -8,39 +8,45 @@ export default function LoadingIndicator({
   className?: string;
 }) {
   const sizeClasses = {
-    sm: "h-6 w-6",
-    md: "h-8 w-8",
-    lg: "h-12 w-12",
+    sm: "h-8 w-8",
+    md: "h-12 w-12",
+    lg: "h-16 w-16",
   };
 
   const textSizeClasses = {
     sm: "text-sm",
-    md: "text-xl",
-    lg: "text-2xl",
+    md: "text-lg",
+    lg: "text-xl",
+  };
+
+  const containerSizeClasses = {
+    sm: "p-6",
+    md: "p-8",
+    lg: "p-12",
   };
 
   return (
-    <div
-      className={`flex flex-col items-center justify-center gap-4 ${className}`}
-    >
-      <div className="relative">
-        <div
-          className={`${sizeClasses[size]} animate-spin rounded-full border-4 border-gray-600`}
-          style={{
-            borderTopColor: "transparent",
-            borderRightColor: "transparent",
-            borderBottomColor: "#3B82F6",
-            borderLeftColor: "#3B82F6",
-          }}
-        />
+    <div className={`flex justify-center ${className}`}>
+      <div
+        className={`flex flex-col items-center justify-center gap-6 ${containerSizeClasses[size]}`}
+      >
+        <div className="relative">
+          <div
+            className={`${sizeClasses[size]} animate-spin rounded-full border-4 border-gray-700/30`}
+            style={{
+              borderTopColor: "#3B82F6",
+              borderRightColor: "#8B5CF6",
+            }}
+          />
+        </div>
+        {text && (
+          <p
+            className={`font-anek ${textSizeClasses[size]} animate-pulse bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text font-medium text-transparent`}
+          >
+            {text}
+          </p>
+        )}
       </div>
-      {text && (
-        <p
-          className={`font-anek ${textSizeClasses[size]} font-medium text-white`}
-        >
-          {text}
-        </p>
-      )}
     </div>
   );
 }

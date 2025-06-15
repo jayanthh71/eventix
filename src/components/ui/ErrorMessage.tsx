@@ -6,25 +6,44 @@ export default function ErrorMessage({
   className?: string;
 }) {
   return (
-    <div
-      className={`flex flex-col items-center justify-center gap-4 ${className}`}
-    >
-      <div className="flex items-center justify-center rounded-full bg-red-500/10 p-3">
-        <svg
-          className="h-8 w-8 text-red-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+    <div className={`flex justify-center ${className}`}>
+      <div className="flex flex-col items-center justify-center gap-6 rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-900/20 to-gray-900/80 p-8 backdrop-blur-sm">
+        <div className="relative">
+          <div className="flex h-16 w-16 animate-pulse items-center justify-center rounded-full bg-gradient-to-r from-red-500/20 to-red-600/20 backdrop-blur-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-r from-red-500/30 to-red-600/30">
+              <svg
+                className="h-7 w-7 text-red-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div
+            className="absolute -top-1 -right-1 h-2 w-2 animate-bounce rounded-full bg-red-400/60"
+            style={{ animationDelay: "0.1s" }}
           />
-        </svg>
+          <div
+            className="absolute -bottom-1 -left-1 h-1.5 w-1.5 animate-bounce rounded-full bg-red-500/40"
+            style={{ animationDelay: "0.3s" }}
+          />
+        </div>
+
+        <div className="text-center">
+          <p className="font-anek bg-gradient-to-r from-red-400 to-red-300 bg-clip-text text-lg font-medium text-transparent">
+            {message}
+          </p>
+        </div>
       </div>
-      <p className="font-anek text-xl font-medium text-red-400">{message}</p>
     </div>
   );
 }
