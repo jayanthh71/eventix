@@ -62,9 +62,30 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
+  const id = searchParams.get("id");
   const category = searchParams.get("category")?.toUpperCase() || "BOTH";
   const sortBy = searchParams.get("sortBy") || "date";
   const take = parseInt(searchParams.get("take") || "50");
+
+  if (id) {
+    try {
+      const event = await prisma.event.findUnique({
+        where: { id },
+      });
+
+      if (!event) {
+        return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      }
+
+      return NextResponse.json([event], { status: 200 });
+    } catch (error) {
+      console.error("Error fetching event by ID:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch event" },
+        { status: 500 },
+      );
+    }
+  }
 
   if (sortBy !== "date" && sortBy !== "createdAt") {
     return NextResponse.json(

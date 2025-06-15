@@ -93,7 +93,28 @@ export async function DELETE(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
+  const id = searchParams.get("id");
   const take = parseInt(searchParams.get("take") || "50");
+
+  if (id) {
+    try {
+      const train = await prisma.train.findUnique({
+        where: { id },
+      });
+
+      if (!train) {
+        return NextResponse.json({ error: "Train not found" }, { status: 404 });
+      }
+
+      return NextResponse.json([train], { status: 200 });
+    } catch (error) {
+      console.error("Error fetching train by ID:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch train" },
+        { status: 500 },
+      );
+    }
+  }
 
   try {
     const trains = await prisma.train.findMany({

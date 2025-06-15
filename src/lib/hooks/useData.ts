@@ -1,5 +1,5 @@
 import { Event, EventCategory, Train } from "@prisma/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 async function fetchEvents(
   category: EventCategory | "BOTH" = "BOTH",
@@ -43,6 +43,36 @@ async function fetchTrains(take: number = 25): Promise<Train[]> {
   }
 }
 
+async function fetchEventById(id: string): Promise<Event | null> {
+  try {
+    const response = await fetch(`/api/events?id=${id}`);
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`Failed to fetch event: ${response.status}`);
+    }
+    const events = await response.json();
+    return events[0] || null;
+  } catch (error) {
+    console.error("Error fetching event:", error);
+    throw error;
+  }
+}
+
+async function fetchTrainById(id: string): Promise<Train | null> {
+  try {
+    const response = await fetch(`/api/trains?id=${id}`);
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`Failed to fetch train: ${response.status}`);
+    }
+    const trains = await response.json();
+    return trains[0] || null;
+  } catch (error) {
+    console.error("Error fetching train:", error);
+    throw error;
+  }
+}
+
 export function useEvents(
   category: EventCategory | "BOTH" = "BOTH",
   sortBy: "date" | "createdAt" = "date",
@@ -51,7 +81,7 @@ export function useEvents(
   return useQuery({
     queryKey: ["events", category, sortBy, take],
     queryFn: () => fetchEvents(category, sortBy, take),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -59,7 +89,7 @@ export function useTrains(take: number = 25) {
   return useQuery({
     queryKey: ["trains", take],
     queryFn: () => fetchTrains(take),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -76,4 +106,76 @@ export function useUpcomingEvents(
   take: number = 8,
 ) {
   return useEvents(category, "date", take);
+}
+
+export function useEntityById<T extends { id: string }>(
+  entityType: "event" | "train",
+  id: string,
+  searchQueries: string[][],
+  fallbackFetch: (id: string) => Promise<T | null>,
+) {
+  const queryClient = useQueryClient();
+
+  return useQuery({
+    queryKey: [entityType, id],
+    queryFn: async () => {
+      for (const queryPattern of searchQueries) {
+        const queriesData = queryClient.getQueriesData({
+          queryKey: queryPattern,
+          exact: false,
+        });
+
+        for (const [, data] of queriesData) {
+          if (Array.isArray(data)) {
+            const found = (data as T[]).find((item) => item.id === id);
+            if (found) {
+              return found;
+            }
+          }
+        }
+      }
+
+      return fallbackFetch(id);
+    },
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+  });
+}
+
+export function useConcertById(id: string) {
+  return useEntityById(
+    "event",
+    id,
+    [
+      ["events", "CONCERT"],
+      ["events", "BOTH"],
+    ],
+    (id: string) =>
+      fetchEventById(id).then((event) =>
+        event?.category === "CONCERT" ? event : null,
+      ),
+  );
+}
+
+export function useMovieById(id: string) {
+  return useEntityById(
+    "event",
+    id,
+    [
+      ["events", "MOVIE"],
+      ["events", "BOTH"],
+    ],
+    (id: string) =>
+      fetchEventById(id).then((event) =>
+        event?.category === "MOVIE" ? event : null,
+      ),
+  );
+}
+
+export function useTrainById(id: string) {
+  return useEntityById("train", id, [["trains"]], fetchTrainById);
 }
