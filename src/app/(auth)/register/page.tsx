@@ -12,10 +12,13 @@ function RegisterForm() {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     role: Role.CUSTOMER as Role,
   });
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { updateUser } = useAuth();
 
   const redirectUrl = useSearchParams().get("redirect") || "/";
@@ -28,6 +31,12 @@ function RegisterForm() {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      setIsLoading(false);
+      return;
+    }
 
     const result = await handleRegister(
       formData.name,
@@ -191,20 +200,142 @@ function RegisterForm() {
                   </svg>
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => updateField("password", e.target.value)}
                   placeholder="Create a strong password"
-                  className="w-full rounded-lg border border-gray-600 bg-gray-700/50 py-3 pr-4 pl-10 text-white placeholder-gray-400 transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-600 bg-gray-700/50 py-3 pr-12 pl-10 text-white placeholder-gray-400 transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-purple-500 focus:outline-none"
                   required
                   maxLength={128}
                   pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$"
                   title="Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number."
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-gray-400 transition-colors duration-200 hover:text-gray-300"
+                >
+                  {showPassword ? (
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  )}
+                </button>
               </div>
               <p className="mt-1 text-xs text-gray-400">
                 Must be 8+ characters with uppercase, lowercase, and number
               </p>
+            </div>
+
+            <div>
+              <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    updateField("confirmPassword", e.target.value)
+                  }
+                  placeholder="Confirm your password"
+                  className="w-full rounded-lg border border-gray-600 bg-gray-700/50 py-3 pr-12 pl-10 text-white placeholder-gray-400 transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  required
+                  maxLength={128}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-gray-400 transition-colors duration-200 hover:text-gray-300"
+                >
+                  {showConfirmPassword ? (
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {formData.confirmPassword &&
+                formData.password !== formData.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-400">
+                    Passwords do not match
+                  </p>
+                )}
             </div>
 
             <div>
@@ -249,11 +380,6 @@ function RegisterForm() {
                   >
                     Customer
                   </span>
-                  {formData.role === Role.CUSTOMER && (
-                    <div className="absolute top-2 right-2">
-                      <div className="h-2 w-2 rounded-full bg-purple-500"></div>
-                    </div>
-                  )}
                 </button>
 
                 <button
@@ -293,11 +419,6 @@ function RegisterForm() {
                   >
                     Vendor
                   </span>
-                  {formData.role === Role.VENDOR && (
-                    <div className="absolute top-2 right-2">
-                      <div className="h-2 w-2 rounded-full bg-purple-500"></div>
-                    </div>
-                  )}
                 </button>
               </div>
             </div>
