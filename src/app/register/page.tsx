@@ -56,11 +56,6 @@ function RegisterForm() {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-gray-900 px-4 py-8 sm:px-6">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 right-1/4 h-64 w-64 rounded-full bg-purple-600/10 blur-3xl"></div>
-        <div className="absolute bottom-1/4 left-1/4 h-96 w-96 rounded-full bg-blue-600/10 blur-3xl"></div>
-      </div>
-
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-pink-600">

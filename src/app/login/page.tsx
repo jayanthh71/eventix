@@ -48,11 +48,6 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)] items-center justify-center bg-gray-900 px-4 sm:px-6">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 h-64 w-64 rounded-full bg-blue-600/10 blur-3xl"></div>
-        <div className="absolute right-1/4 bottom-1/4 h-96 w-96 rounded-full bg-purple-600/10 blur-3xl"></div>
-      </div>
-
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
@@ -211,7 +206,7 @@ function LoginForm() {
 
           <div className="mt-8 text-center">
             <p className="font-anek text-gray-400">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <Link
                 href="/register"
                 className="font-semibold text-blue-400 transition-colors duration-200 hover:text-blue-300"

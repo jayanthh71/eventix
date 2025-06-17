@@ -41,7 +41,7 @@ export default function LoadingIndicator({
         </div>
         {text && (
           <p
-            className={`font-anek ${textSizeClasses[size]} animate-pulse bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text font-medium text-transparent`}
+            className={`font-anek ${textSizeClasses[size]} bg-clip-text font-medium text-white`}
           >
             {text}
           </p>

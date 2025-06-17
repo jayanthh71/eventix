@@ -88,7 +88,7 @@ export default function Movies() {
           <div className="flex justify-center">
             <button
               onClick={handleShowMore}
-              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-blue-600/80 to-cyan-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-blue-500/80 hover:to-cyan-500/80 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-blue-600/80 to-purple-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-blue-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
             >
               Show More
             </button>
