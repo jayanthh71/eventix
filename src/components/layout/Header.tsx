@@ -1,4 +1,5 @@
 import ProfileButton from "@/components/ui/ProfileButton";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Header() {
@@ -7,8 +8,15 @@ export default function Header() {
       <nav className="flex h-20 max-w-full items-center justify-between px-8 font-extrabold md:mx-12">
         <Link
           href="/"
-          className="font-anek transform bg-clip-text text-4xl transition-all duration-300 hover:scale-105"
+          className="font-anek flex transform gap-0.5 bg-clip-text text-4xl transition-all duration-300 hover:scale-105"
         >
+          <Image
+            src="/logo.png"
+            alt="Eventix Logo"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
           Eventix
         </Link>
         <ProfileButton />
