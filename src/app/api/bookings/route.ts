@@ -109,22 +109,8 @@ export async function POST(request: NextRequest) {
           status: "CONFIRMED",
         },
         include: {
-          event: {
-            select: {
-              title: true,
-              date: true,
-              location: true,
-            },
-          },
-          train: {
-            select: {
-              name: true,
-              number: true,
-              departure: true,
-              from: true,
-              to: true,
-            },
-          },
+          event: true,
+          train: true,
         },
       });
 
@@ -173,25 +159,8 @@ export async function GET(request: NextRequest) {
           userId: user.id,
         },
         include: {
-          event: {
-            select: {
-              title: true,
-              date: true,
-              location: true,
-              imageUrl: true,
-            },
-          },
-          train: {
-            select: {
-              name: true,
-              number: true,
-              departure: true,
-              arrival: true,
-              from: true,
-              to: true,
-              imageUrl: true,
-            },
-          },
+          event: true,
+          train: true,
         },
       });
 
@@ -207,25 +176,8 @@ export async function GET(request: NextRequest) {
       const bookings = await prisma.booking.findMany({
         where: { userId: user.id },
         include: {
-          event: {
-            select: {
-              title: true,
-              date: true,
-              location: true,
-              imageUrl: true,
-            },
-          },
-          train: {
-            select: {
-              name: true,
-              number: true,
-              departure: true,
-              arrival: true,
-              from: true,
-              to: true,
-              imageUrl: true,
-            },
-          },
+          event: true,
+          train: true,
         },
         orderBy: {
           createdAt: "desc",
@@ -238,6 +190,80 @@ export async function GET(request: NextRequest) {
     console.error("Get bookings error:", error);
     return NextResponse.json(
       { error: "Failed to fetch bookings" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { bookingId, action } = body;
+
+    if (!bookingId) {
+      return NextResponse.json(
+        { error: "Booking ID is required" },
+        { status: 400 },
+      );
+    }
+
+    if (action !== "cancel") {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: bookingId,
+        userId: user.id,
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    if (booking.status === "CANCELLED") {
+      return NextResponse.json(
+        { error: "Booking is already cancelled" },
+        { status: 400 },
+      );
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedBooking = await tx.booking.update({
+        where: { id: bookingId },
+        data: { status: "CANCELLED" },
+        include: {
+          event: true,
+          train: true,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          balance: {
+            increment: booking.totalPrice,
+          },
+        },
+      });
+
+      return updatedBooking;
+    });
+
+    return NextResponse.json({
+      message: "Booking cancelled successfully and refund processed",
+      booking: result,
+    });
+  } catch (error) {
+    console.error("Cancel booking error:", error);
+    return NextResponse.json(
+      { error: "Failed to cancel booking" },
       { status: 500 },
     );
   }
