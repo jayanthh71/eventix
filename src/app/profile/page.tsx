@@ -220,13 +220,22 @@ export default function Profile() {
       id: booking.id,
       quantity: booking.quantity,
       totalPrice: booking.totalPrice,
-      time: booking.time.toISOString(),
+      time:
+        booking.time instanceof Date
+          ? booking.time.toISOString()
+          : new Date(booking.time).toISOString(),
       status: booking.status as "PENDING" | "CONFIRMED" | "CANCELLED",
-      createdAt: booking.createdAt.toISOString(),
+      createdAt:
+        booking.createdAt instanceof Date
+          ? booking.createdAt.toISOString()
+          : new Date(booking.createdAt).toISOString(),
       event: booking.event
         ? {
             title: booking.event.title,
-            date: booking.event.date.toISOString(),
+            date:
+              booking.event.date instanceof Date
+                ? booking.event.date.toISOString()
+                : new Date(booking.event.date).toISOString(),
             location: booking.event.location,
             imageUrl: booking.event.imageUrl || undefined,
             category: booking.event.category as "MOVIE" | "CONCERT",
@@ -236,8 +245,14 @@ export default function Profile() {
         ? {
             name: booking.train.name,
             number: booking.train.number,
-            departure: booking.train.departure.toISOString(),
-            arrival: booking.train.arrival.toISOString(),
+            departure:
+              booking.train.departure instanceof Date
+                ? booking.train.departure.toISOString()
+                : new Date(booking.train.departure).toISOString(),
+            arrival:
+              booking.train.arrival instanceof Date
+                ? booking.train.arrival.toISOString()
+                : new Date(booking.train.arrival).toISOString(),
             from: booking.train.from,
             to: booking.train.to,
             imageUrl: booking.train.imageUrl || undefined,
