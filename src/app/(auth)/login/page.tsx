@@ -2,6 +2,7 @@
 
 import handleLogin from "@/lib/auth/handleLogin";
 import useAuth from "@/lib/hooks/useAuth";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -14,7 +15,7 @@ function LoginForm() {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { updateUser } = useAuth();
+  const { updateUser, refreshUser } = useAuth();
 
   const redirectUrl = useSearchParams().get("redirect") || "/";
 
@@ -31,6 +32,7 @@ function LoginForm() {
 
     if (result.success) {
       updateUser(result.data);
+      await refreshUser();
       redirect(redirectUrl);
     } else {
       if (result.status === 401) {
@@ -250,8 +252,9 @@ function LoginForm() {
               onClick={() =>
                 (window.location.href = "/api/auth/dauth/authorize")
               }
-              className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold text-gray-700 shadow-lg transition-all duration-200 hover:scale-105 hover:bg-gray-100"
+              className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-gray-800 bg-black px-4 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:border-gray-600 hover:bg-gray-900 hover:shadow-xl"
             >
+              <Image src="/delta.png" alt="DAuth Logo" width={20} height={20} />
               Sign in with DAuth
             </button>
           </div>

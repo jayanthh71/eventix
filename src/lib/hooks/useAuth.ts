@@ -31,6 +31,7 @@ export default function useAuth() {
     data: user = null,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["user"],
     queryFn: fetchUser,
@@ -63,6 +64,10 @@ export default function useAuth() {
     queryClient.setQueryData(["user"], userData);
   };
 
+  const refreshUser = async () => {
+    await refetch();
+  };
+
   return {
     user,
     isLoggedIn: !!user,
@@ -70,5 +75,6 @@ export default function useAuth() {
     error,
     logOut,
     updateUser,
+    refreshUser,
   };
 }

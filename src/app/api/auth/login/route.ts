@@ -77,6 +77,10 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
         role: user.role,
+        balance: user.balance,
+        imageUrl: user.imageUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
       { status: 200 },
     );

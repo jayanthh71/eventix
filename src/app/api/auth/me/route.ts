@@ -102,7 +102,7 @@ export async function PATCH(request: NextRequest) {
 
       const isCurrentPasswordValid = await bcrypt.compare(
         currentPassword,
-        currentUser.password,
+        currentUser.password || "",
       );
 
       if (!isCurrentPasswordValid) {

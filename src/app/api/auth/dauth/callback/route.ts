@@ -3,7 +3,6 @@ import { AuthMethod, Role } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { use } from "react";
 
 export async function GET(request: NextRequest) {
   try {
