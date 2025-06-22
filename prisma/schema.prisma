@@ -19,14 +19,22 @@ enum Role {
   VENDOR
 }
 
+enum AuthMethod {
+  EMAIL
+  DAUTH
+}
+
 model User {
   id       String  @id @default(cuid())
   name     String
   email    String  @unique
-  password String
+  password String?
   role     Role    @default(CUSTOMER)
   balance  Float   @default(5000)
   imageUrl String?
+
+  DAuthId    String?    @unique
+  authMethod AuthMethod @default(EMAIL)
 
   bookings           Booking[]
   passwordResetToken PasswordResetToken[]

@@ -27,6 +27,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (user.authMethod === "DAUTH" && !user.password) {
+      return NextResponse.json(
+        {
+          error: "This account uses DAuth. Please Sign in with DAuth",
+        },
+        { status: 401 },
+      );
+    }
+
+    if (!user.password) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 },
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return NextResponse.json(
