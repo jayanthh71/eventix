@@ -215,7 +215,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full transform rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-purple-700 disabled:scale-100 disabled:cursor-not-allowed disabled:from-gray-600 disabled:to-gray-700"
+              className="w-full transform cursor-pointer rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-purple-700 disabled:scale-100 disabled:cursor-not-allowed disabled:from-gray-600 disabled:to-gray-700"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -243,6 +243,16 @@ function LoginForm() {
               ) : (
                 "Sign in"
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                (window.location.href = "/api/auth/dauth/authorize")
+              }
+              className="flex w-full cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 font-semibold text-gray-700 shadow-lg transition-all duration-200 hover:scale-105 hover:bg-gray-100"
+            >
+              Sign in with DAuth
             </button>
           </div>
 

@@ -9,8 +9,7 @@ export async function POST() {
     path: "/",
   });
 
-  return NextResponse.json(
-    { message: "Logged out successfully" },
-    { status: 200 },
+  return NextResponse.redirect(
+    process.env.FRONTEND_URL || "http://localhost:3000",
   );
 }
