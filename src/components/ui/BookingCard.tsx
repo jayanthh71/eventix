@@ -1,4 +1,6 @@
+import { previewTicket } from "@/lib/pdf/generateTicket";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function BookingCard({
   booking,
@@ -32,6 +34,8 @@ export default function BookingCard({
   onCancel?: (bookingId: string) => void;
   isCancelling?: boolean;
 }) {
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+
   const isEvent = !!booking.event;
   const isTrain = !!booking.train;
   const isMovie = isEvent && booking.event?.category === "MOVIE";
@@ -64,6 +68,58 @@ export default function BookingCard({
       minute: "2-digit",
       hour12: true,
     });
+  };
+
+  const isUpcomingEvent = () => {
+    if (!isEvent || !booking.event) return false;
+    const eventDate = new Date(booking.event.date);
+    const now = new Date();
+    return eventDate > now;
+  };
+
+  const handleDownloadTicket = async () => {
+    if (!isEvent || !booking.event) return;
+
+    setIsDownloadingPDF(true);
+    try {
+      const userResponse = await fetch("/api/auth/me", {
+        credentials: "include",
+      });
+
+      if (!userResponse.ok) {
+        throw new Error("Failed to get user details");
+      }
+
+      const user = await userResponse.json();
+
+      const bookingResponse = await fetch(`/api/bookings?id=${booking.id}`, {
+        credentials: "include",
+      });
+
+      if (!bookingResponse.ok) {
+        throw new Error("Failed to get booking details");
+      }
+
+      const fullBooking = await bookingResponse.json();
+
+      if (!fullBooking.event) {
+        throw new Error("Event details not found in booking");
+      }
+
+      const result = await previewTicket({
+        event: fullBooking.event,
+        user,
+        booking: fullBooking,
+      });
+
+      if (!result.success) {
+        console.error("Failed to preview PDF:", result.error);
+      }
+    } catch (error) {
+      console.error("Error previewing ticket:", error);
+    } finally {
+      setIsDownloadingPDF(false);
+    }
   };
 
   return (
@@ -265,37 +321,89 @@ export default function BookingCard({
           </div>
         </div>
 
-        {booking.status === "CONFIRMED" && onCancel ? (
-          <button
-            onClick={() => {
-              onCancel(booking.id);
-            }}
-            disabled={isCancelling}
-            className="font-anek mt-4 w-full transform cursor-pointer rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-red-800 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isCancelling ? (
-              <div className="flex items-center justify-center gap-2">
-                Cancelling...
+        <div className="space-y-3">
+          {booking.status === "CONFIRMED" && isEvent && isUpcomingEvent() && (
+            <button
+              onClick={handleDownloadTicket}
+              disabled={isDownloadingPDF}
+              className="font-anek w-full transform cursor-pointer rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDownloadingPDF ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Generating...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  View Ticket
+                </div>
+              )}
+            </button>
+          )}
+
+          {booking.status === "CONFIRMED" && onCancel ? (
+            <button
+              onClick={() => {
+                onCancel(booking.id);
+              }}
+              disabled={isCancelling}
+              className="font-anek w-full transform cursor-pointer rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-6 py-3 font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-red-700 hover:to-red-800 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 focus:outline-none disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isCancelling ? (
+                <div className="flex items-center justify-center gap-2">
+                  Cancelling...
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  Cancel Booking
+                </div>
+              )}
+            </button>
+          ) : booking.status === "CANCELLED" ? (
+            <div className="w-full rounded-lg border-2 border-red-600/50 bg-red-600/10 px-6 py-3 text-center">
+              <div className="flex items-center justify-center gap-2 text-red-400">
+                <span className="font-semibold">Booking Cancelled</span>
               </div>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                Cancel Booking
+            </div>
+          ) : (
+            <div className="w-full rounded-lg border-2 border-yellow-600/50 bg-yellow-600/10 px-6 py-3 text-center">
+              <div className="flex items-center justify-center gap-2 text-yellow-400">
+                <span className="font-semibold">Pending Confirmation</span>
               </div>
-            )}
-          </button>
-        ) : booking.status === "CANCELLED" ? (
-          <div className="mt-4 w-full rounded-lg border-2 border-red-600/50 bg-red-600/10 px-6 py-3 text-center">
-            <div className="flex items-center justify-center gap-2 text-red-400">
-              <span className="font-semibold">Booking Cancelled</span>
             </div>
-          </div>
-        ) : (
-          <div className="mt-4 w-full rounded-lg border-2 border-yellow-600/50 bg-yellow-600/10 px-6 py-3 text-center">
-            <div className="flex items-center justify-center gap-2 text-yellow-400">
-              <span className="font-semibold">Pending Confirmation</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,8 @@ import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { useMovieById } from "@/lib/hooks/useData";
+import { downloadTicket } from "@/lib/pdf/generateTicket";
+import { Booking } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -25,6 +27,8 @@ export default function MovieBooking({
   const [isBooking, setIsBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     const showtimeParam = searchParams.get("showtime");
@@ -71,6 +75,20 @@ export default function MovieBooking({
         throw new Error(errorData.error || "Failed to create booking");
       }
 
+      const bookingData = await response.json();
+      const bookingId = bookingData.booking.id;
+
+      const bookingResponse = await fetch(`/api/bookings?id=${bookingId}`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!bookingResponse.ok) {
+        throw new Error("Failed to fetch booking details");
+      }
+
+      const fullBooking: Booking = await bookingResponse.json();
+      setCreatedBooking(fullBooking);
       setBookingSuccess(true);
     } catch (error) {
       setBookingError(
@@ -78,6 +96,27 @@ export default function MovieBooking({
       );
     } finally {
       setIsBooking(false);
+    }
+  };
+
+  const handleDownloadTicket = async () => {
+    if (!movie || !user || !createdBooking) return;
+
+    setIsDownloadingPDF(true);
+    try {
+      const result = await downloadTicket({
+        event: movie,
+        user: user,
+        booking: createdBooking,
+      });
+
+      if (!result.success) {
+        console.error("Failed to generate PDF:", result.error);
+      }
+    } catch (error) {
+      console.error("Error downloading ticket:", error);
+    } finally {
+      setIsDownloadingPDF(false);
     }
   };
 
@@ -181,6 +220,53 @@ export default function MovieBooking({
                 Your tickets for {movie.title} have been booked successfully.
               </p>
               <div className="space-y-3">
+                <button
+                  onClick={handleDownloadTicket}
+                  disabled={isDownloadingPDF}
+                  className="block w-full cursor-pointer rounded-xl bg-gradient-to-r from-green-600/80 to-emerald-600/80 px-6 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-green-500/80 hover:to-emerald-500/80 focus:ring-2 focus:ring-green-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  {isDownloadingPDF ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg
+                        className="h-5 w-5 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Generating PDF...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Download Ticket PDF
+                    </span>
+                  )}
+                </button>
                 <Link
                   href={`/movies/${movie.id}`}
                   className="block w-full cursor-pointer rounded-xl bg-gradient-to-r from-purple-600/80 to-pink-600/80 px-6 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-purple-500/80 hover:to-pink-500/80 focus:ring-2 focus:ring-purple-500/30 focus:outline-none"

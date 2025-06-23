@@ -51,6 +51,8 @@ export default function Profile() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string>("");
+  const [upcomingDisplayedCount, setUpcomingDisplayedCount] = useState(6);
+  const [pastDisplayedCount, setPastDisplayedCount] = useState(6);
 
   if (user && profileData.name === "") {
     setProfileData({
@@ -259,6 +261,24 @@ export default function Profile() {
           }
         : undefined,
     };
+  };
+
+  // Pagination helpers for bookings
+  const displayedUpcomingBookings = upcomingBookings.slice(
+    0,
+    upcomingDisplayedCount,
+  );
+  const displayedPastBookings = pastBookings.slice(0, pastDisplayedCount);
+  const hasMoreUpcomingBookings =
+    upcomingDisplayedCount < upcomingBookings.length;
+  const hasMorePastBookings = pastDisplayedCount < pastBookings.length;
+
+  const handleShowMoreUpcoming = () => {
+    setUpcomingDisplayedCount((prev) => prev + 6);
+  };
+
+  const handleShowMorePast = () => {
+    setPastDisplayedCount((prev) => prev + 6);
   };
 
   return (
@@ -798,7 +818,7 @@ export default function Profile() {
                       <>
                         {upcomingBookings.length > 0 ? (
                           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {upcomingBookings.map((booking) => (
+                            {displayedUpcomingBookings.map((booking) => (
                               <BookingCard
                                 key={booking.id}
                                 booking={formatBookingForCard(booking)}
@@ -816,6 +836,17 @@ export default function Profile() {
                             </p>
                           </div>
                         )}
+
+                        {hasMoreUpcomingBookings && (
+                          <div className="mt-4 flex justify-center">
+                            <button
+                              onClick={handleShowMoreUpcoming}
+                              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-blue-600/80 to-purple-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-blue-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                            >
+                              Show More
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -827,7 +858,7 @@ export default function Profile() {
                       <>
                         {pastBookings.length > 0 ? (
                           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {pastBookings.map((booking) => (
+                            {displayedPastBookings.map((booking) => (
                               <BookingCard
                                 key={booking.id}
                                 booking={formatBookingForCard(booking)}
@@ -843,6 +874,17 @@ export default function Profile() {
                             <p className="font-anek text-gray-400">
                               No past bookings
                             </p>
+                          </div>
+                        )}
+
+                        {hasMorePastBookings && (
+                          <div className="mt-4 flex justify-center">
+                            <button
+                              onClick={handleShowMorePast}
+                              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-blue-600/80 to-purple-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-blue-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
+                            >
+                              Show More
+                            </button>
                           </div>
                         )}
                       </>
