@@ -2,9 +2,9 @@
 
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
+import { downloadTicket } from "@/lib/events/generateTicket";
 import useAuth from "@/lib/hooks/useAuth";
 import { useConcertById } from "@/lib/hooks/useData";
-import { downloadTicket } from "@/lib/pdf/generateTicket";
 import { Booking } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
