@@ -1,4 +1,6 @@
-import { Booking, Event, User } from "@prisma/client";
+"use client";
+
+import { Booking, Train, User } from "@prisma/client";
 import {
   Document,
   Font,
@@ -13,19 +15,19 @@ Font.register({
   family: "Anek Latin",
   fonts: [
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Regular.ttf`,
+      src: "/fonts/AnekLatin-Regular.ttf",
       fontWeight: "normal",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Medium.ttf`,
+      src: "/fonts/AnekLatin-Medium.ttf",
       fontWeight: "medium",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-SemiBold.ttf`,
+      src: "/fonts/AnekLatin-SemiBold.ttf",
       fontWeight: "semibold",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Bold.ttf`,
+      src: "/fonts/AnekLatin-Bold.ttf",
       fontWeight: "bold",
     },
   ],
@@ -201,27 +203,23 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function EventTicket({
-  event,
+export default function TrainTicketClient({
+  train,
   user,
   booking,
 }: {
-  event: Event;
+  train: Train;
   user: User;
   booking: Booking;
 }) {
-  const eventDateTime = new Date(booking.time);
+  const trainDateTime = new Date(booking.time);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image
-              src={`${process.cwd()}/public/logo.png`}
-              style={styles.logoImage}
-            />
+            <Image src="/logo.png" style={styles.logoImage} />
             <Text style={styles.logo}>Eventix</Text>
           </View>
           <Text style={styles.ticketId}>
@@ -229,20 +227,20 @@ export default function EventTicket({
           </Text>
         </View>
 
-        <Text style={styles.title}>
-          {event.category === "MOVIE" ? "Movie Ticket" : "Concert Ticket"}
-        </Text>
+        <Text style={styles.title}>Train Ticket</Text>
 
         <View style={styles.ticketContainer}>
           <View style={styles.eventDetails}>
             <View style={styles.eventLeft}>
-              <Text style={styles.eventTitle}>{event.title}</Text>
-              <Text style={styles.eventDescription}>{event.description}</Text>
+              <Text style={styles.eventTitle}>{train.name}</Text>
+              <Text style={styles.eventDescription}>
+                Train Number: {train.number}
+              </Text>
             </View>
             <View style={styles.eventRight}>
-              <Text style={styles.infoLabel}>Date</Text>
+              <Text style={styles.infoLabel}>Journey Date</Text>
               <Text style={styles.infoValue}>
-                {eventDateTime.toLocaleDateString("en-US", {
+                {trainDateTime.toLocaleDateString("en-US", {
                   weekday: "short",
                   year: "numeric",
                   month: "short",
@@ -254,15 +252,17 @@ export default function EventTicket({
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Venue</Text>
-              <Text style={styles.infoValue}>{event.location}</Text>
+              <Text style={styles.infoLabel}>From</Text>
+              <Text style={styles.infoValue}>{train.from}</Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>
-                {event.category === "MOVIE" ? "Showtime" : "Time"}
-              </Text>
+              <Text style={styles.infoLabel}>To</Text>
+              <Text style={styles.infoValue}>{train.to}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Departure</Text>
               <Text style={styles.infoValue}>
-                {eventDateTime.toLocaleTimeString("en-US", {
+                {new Date(train.departure).toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
                   hour12: true,
@@ -270,15 +270,23 @@ export default function EventTicket({
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>
-                {event.category === "MOVIE" ? "Tickets" : "Seats"}
+              <Text style={styles.infoLabel}>Arrival</Text>
+              <Text style={styles.infoValue}>
+                {new Date(train.arrival).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
               </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Tickets</Text>
               <Text style={styles.infoValue}>
                 {booking.quantity} Ticket{booking.quantity > 1 ? "s" : ""}
               </Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Holder</Text>
+              <Text style={styles.infoLabel}>Passenger</Text>
               <Text style={styles.infoValue}>{user.name}</Text>
             </View>
           </View>
@@ -294,9 +302,6 @@ export default function EventTicket({
             <View style={styles.qrPlaceholder}>
               <Text style={styles.qrText}>QR CODE</Text>
             </View>
-            <Text style={styles.qrText}>
-              Scan this code at the venue for entry
-            </Text>
           </View>
         </View>
       </Page>

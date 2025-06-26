@@ -1,5 +1,3 @@
-"use client";
-
 import { Booking, Train, User } from "@prisma/client";
 import {
   Document,
@@ -15,19 +13,19 @@ Font.register({
   family: "Anek Latin",
   fonts: [
     {
-      src: "/fonts/AnekLatin-Regular.ttf",
+      src: `${process.cwd()}/public/fonts/AnekLatin-Regular.ttf`,
       fontWeight: "normal",
     },
     {
-      src: "/fonts/AnekLatin-Medium.ttf",
+      src: `${process.cwd()}/public/fonts/AnekLatin-Medium.ttf`,
       fontWeight: "medium",
     },
     {
-      src: "/fonts/AnekLatin-SemiBold.ttf",
+      src: `${process.cwd()}/public/fonts/AnekLatin-SemiBold.ttf`,
       fontWeight: "semibold",
     },
     {
-      src: "/fonts/AnekLatin-Bold.ttf",
+      src: `${process.cwd()}/public/fonts/AnekLatin-Bold.ttf`,
       fontWeight: "bold",
     },
   ],
@@ -220,7 +218,10 @@ export default function TrainTicket({
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src="/logo.png" style={styles.logoImage} />
+            <Image
+              src={`${process.cwd()}/public/logo.png`}
+              style={styles.logoImage}
+            />
             <Text style={styles.logo}>Eventix</Text>
           </View>
           <Text style={styles.ticketId}>

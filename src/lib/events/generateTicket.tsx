@@ -1,7 +1,7 @@
 "use client";
 
-import EventTicket from "@/components/pdf/EventTicket";
-import TrainTicket from "@/components/pdf/TrainTicket";
+import EventTicketClient from "@/components/pdf/EventTicketClient";
+import TrainTicketClient from "@/components/pdf/TrainTicketClient";
 import { Booking, Event, Train, User } from "@prisma/client";
 import { pdf } from "@react-pdf/renderer";
 
@@ -22,12 +22,12 @@ export const downloadTicket = async ({
 
     if (train) {
       ticketComponent = (
-        <TrainTicket train={train} user={user} booking={booking} />
+        <TrainTicketClient train={train} user={user} booking={booking} />
       );
       filename = `${train.name.replace(/[^a-zA-Z0-9]/g, "_")}_Train_Ticket.pdf`;
     } else if (event) {
       ticketComponent = (
-        <EventTicket event={event} user={user} booking={booking} />
+        <EventTicketClient event={event} user={user} booking={booking} />
       );
       const eventType = event.category === "MOVIE" ? "Movie" : "Concert";
       filename = `${event.title.replace(/[^a-zA-Z0-9]/g, "_")}_${eventType}_Ticket.pdf`;
@@ -71,11 +71,11 @@ export const previewTicket = async ({
 
     if (train) {
       ticketComponent = (
-        <TrainTicket train={train} user={user} booking={booking} />
+        <TrainTicketClient train={train} user={user} booking={booking} />
       );
     } else if (event) {
       ticketComponent = (
-        <EventTicket event={event} user={user} booking={booking} />
+        <EventTicketClient event={event} user={user} booking={booking} />
       );
     } else {
       return { success: false, error: "No event or train provided" };

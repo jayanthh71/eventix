@@ -1,3 +1,5 @@
+"use client";
+
 import { Booking, Event, User } from "@prisma/client";
 import {
   Document,
@@ -13,19 +15,19 @@ Font.register({
   family: "Anek Latin",
   fonts: [
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Regular.ttf`,
+      src: "/fonts/AnekLatin-Regular.ttf",
       fontWeight: "normal",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Medium.ttf`,
+      src: "/fonts/AnekLatin-Medium.ttf",
       fontWeight: "medium",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-SemiBold.ttf`,
+      src: "/fonts/AnekLatin-SemiBold.ttf",
       fontWeight: "semibold",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Bold.ttf`,
+      src: "/fonts/AnekLatin-Bold.ttf",
       fontWeight: "bold",
     },
   ],
@@ -201,7 +203,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function EventTicket({
+export default function EventTicketClient({
   event,
   user,
   booking,
@@ -217,11 +219,7 @@ export default function EventTicket({
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image
-              src={`${process.cwd()}/public/logo.png`}
-              style={styles.logoImage}
-            />
+            <Image src="/logo.png" style={styles.logoImage} />
             <Text style={styles.logo}>Eventix</Text>
           </View>
           <Text style={styles.ticketId}>

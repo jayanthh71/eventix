@@ -78,6 +78,28 @@ export default function TrainBooking({
       const fullBooking: Booking = await bookingResponse.json();
       setCreatedBooking(fullBooking);
       setBookingSuccess(true);
+
+      try {
+        const emailResponse = await fetch("/api/send-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bookingId: fullBooking.id,
+            userId: user.id,
+          }),
+          credentials: "include",
+        });
+
+        if (emailResponse.ok) {
+          console.log("Confirmation email sent successfully");
+        } else {
+          console.error("Failed to send confirmation email");
+        }
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+      }
     } catch (error) {
       setBookingError(
         error instanceof Error ? error.message : "Booking failed",
