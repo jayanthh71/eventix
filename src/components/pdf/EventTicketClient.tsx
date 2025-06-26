@@ -1,5 +1,6 @@
 "use client";
 
+import generateQR from "@/lib/events/generateQR";
 import { Booking, Event, User } from "@prisma/client";
 import {
   Document,
@@ -213,6 +214,7 @@ export default function EventTicketClient({
   booking: Booking;
 }) {
   const eventDateTime = new Date(booking.time);
+  const qrCode = generateQR(booking, user, event);
 
   return (
     <Document>
@@ -290,9 +292,15 @@ export default function EventTicketClient({
           </View>
 
           <View style={styles.qrSection}>
-            <View style={styles.qrPlaceholder}>
-              <Text style={styles.qrText}>QR CODE</Text>
-            </View>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image
+              src={qrCode}
+              style={{
+                width: 120,
+                height: 120,
+                marginBottom: 12,
+              }}
+            />
             <Text style={styles.qrText}>
               Scan this code at the venue for entry
             </Text>
