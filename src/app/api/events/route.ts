@@ -71,6 +71,15 @@ export async function GET(request: NextRequest) {
     try {
       const event = await prisma.event.findUnique({
         where: { id },
+        include: {
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+            },
+          },
+        },
       });
 
       if (!event) {
@@ -114,6 +123,15 @@ export async function GET(request: NextRequest) {
 
     const events = await prisma.event.findMany({
       where: whereClause,
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
+      },
       orderBy: {
         [sortBy]: sortBy === "createdAt" ? "desc" : "asc",
       },

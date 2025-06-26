@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
   try {
     const userExists = await prisma.user.findUnique({
       where: { email },
+      select: { id: true },
     });
 
     if (userExists) {

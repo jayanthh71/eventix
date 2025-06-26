@@ -55,9 +55,46 @@ export default function ConcertPage({
                   {concert.title}
                 </h1>
 
-                <p className="font-anek mb-6 max-w-3xl text-lg leading-relaxed text-gray-200 sm:text-xl">
+                <p className="font-anek mb-4 max-w-3xl text-lg leading-relaxed text-gray-200 sm:text-xl">
                   {concert.description}
                 </p>
+
+                {concert.vendor && (
+                  <div className="mb-6 inline-flex items-center gap-3">
+                    <div className="relative h-7 w-7 overflow-hidden rounded-full">
+                      {concert.vendor.imageUrl ? (
+                        <Image
+                          src={concert.vendor.imageUrl}
+                          alt={concert.vendor.name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-600 to-gray-700">
+                          <svg
+                            className="h-3 w-3 text-gray-300"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-anek text-sm text-gray-300">
+                        Organized by{" "}
+                      </span>
+                      <span className="font-anek text-sm font-medium text-white">
+                        {concert.vendor.name}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="font-anek flex flex-wrap items-center gap-6 text-white">
                   <div className="flex items-center gap-2">

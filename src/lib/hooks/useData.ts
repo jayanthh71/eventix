@@ -1,11 +1,11 @@
-import { Event, EventCategory, Train } from "@prisma/client";
+import { EventCategory, Train } from "@prisma/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 async function fetchEvents(
   category: EventCategory | "BOTH" = "BOTH",
   sortBy: "date" | "createdAt" = "date",
   take: number = 15,
-): Promise<Event[]> {
+) {
   try {
     const params = new URLSearchParams({
       category: category,
@@ -43,7 +43,7 @@ async function fetchTrains(take: number = 25): Promise<Train[]> {
   }
 }
 
-async function fetchEventById(id: string): Promise<Event | null> {
+async function fetchEventById(id: string) {
   try {
     const response = await fetch(`/api/events?id=${id}`);
     if (!response.ok) {

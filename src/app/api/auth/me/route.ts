@@ -26,16 +26,6 @@ export async function GET() {
     const userId = decoded.id;
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        balance: true,
-        imageUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
     if (!user) {
@@ -131,6 +121,7 @@ export async function PATCH(request: NextRequest) {
 
       const existingUser = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
+        select: { id: true },
       });
 
       if (existingUser && existingUser.id !== userId) {
@@ -170,16 +161,6 @@ export async function PATCH(request: NextRequest) {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        balance: true,
-        imageUrl: true,
-        createdAt: true,
-        updatedAt: true,
-      },
     });
 
     return NextResponse.json(updatedUser, { status: 200 });

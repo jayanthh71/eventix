@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
     try {
       const userExists = await prisma.user.findUnique({
         where: { email },
+        select: { id: true },
       });
 
       if (!userExists) {
@@ -95,6 +96,7 @@ export async function GET(request: NextRequest) {
 
       const DAuthUser = await prisma.user.findUnique({
         where: { email },
+        select: { id: true, email: true },
       });
 
       if (!DAuthUser) {
