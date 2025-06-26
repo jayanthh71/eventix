@@ -219,6 +219,7 @@ export default function EventTicketClient({
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src="/logo.png" style={styles.logoImage} />
             <Text style={styles.logo}>Eventix</Text>
           </View>
