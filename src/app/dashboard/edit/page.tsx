@@ -1,6 +1,7 @@
 "use client";
 
 import DatePicker from "@/components/ui/DatePicker";
+import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";
@@ -11,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 function EditEventContent() {
-  const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("event");
@@ -40,8 +41,11 @@ function EditEventContent() {
   });
 
   useEffect(() => {
-    if (!authLoading && !isLoggedIn) {
-      router.push("/login");
+    if (
+      !authLoading &&
+      (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN"))
+    ) {
+      router.push("/");
       return;
     }
 
@@ -95,7 +99,7 @@ function EditEventContent() {
     if (isLoggedIn && eventId) {
       fetchEvent();
     }
-  }, [authLoading, isLoggedIn, router, eventId]);
+  }, [authLoading, isLoggedIn, user?.role, router, eventId]);
 
   const cleanupNewlyUploadedImage = async () => {
     if (
@@ -462,23 +466,14 @@ function EditEventContent() {
     );
   }
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN")) {
     return null;
   }
 
   if (!eventId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center text-white">
-          <h1 className="mb-4 text-2xl font-bold">Event Not Found</h1>
-          <p className="mb-6 text-gray-400">The event ID was not provided.</p>
-          <Link
-            href="/dashboard"
-            className="font-anek rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
+        <ErrorMessage message="The event ID was not provided." />
       </div>
     );
   }

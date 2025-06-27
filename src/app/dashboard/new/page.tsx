@@ -1,6 +1,7 @@
 "use client";
 
 import DatePicker from "@/components/ui/DatePicker";
+import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";
@@ -10,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function NewEvent() {
-  const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,10 +35,13 @@ export default function NewEvent() {
   });
 
   useEffect(() => {
-    if (!authLoading && !isLoggedIn) {
-      router.push("/login");
+    if (
+      !authLoading &&
+      (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN"))
+    ) {
+      router.push("/");
     }
-  }, [authLoading, isLoggedIn, router]);
+  }, [authLoading, isLoggedIn, user?.role, router]);
 
   const cleanupUploadedImage = async () => {
     if (uploadedImageUrl && !wasSuccessfullySubmitted) {
@@ -328,7 +332,7 @@ export default function NewEvent() {
     );
   }
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN")) {
     return null;
   }
 

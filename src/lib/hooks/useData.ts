@@ -237,19 +237,21 @@ export function useTrainById(id: string) {
   return useEntityById<Train>("train", id, [["trains"]], fetchTrainById);
 }
 
-export function useVendorEvents() {
+export function useVendorEvents(enabled: boolean = true) {
   return useQuery({
     queryKey: ["vendor-events"],
     queryFn: fetchVendorEvents,
     staleTime: 5 * 60 * 1000,
+    enabled,
   });
 }
 
-export function useVendorStats() {
+export function useVendorStats(enabled: boolean = true) {
   return useQuery({
     queryKey: ["vendor-stats"],
     queryFn: fetchVendorStats,
     staleTime: 5 * 60 * 1000,
+    enabled,
   });
 }
 

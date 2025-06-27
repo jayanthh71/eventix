@@ -11,23 +11,26 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 export default function Dashboard() {
-  const { isLoggedIn, isLoading: authLoading } = useAuth();
+  const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [displayedCount, setDisplayedCount] = useState(8);
 
+  const isAuthorized =
+    isLoggedIn && (user?.role === "VENDOR" || user?.role === "ADMIN");
+
   const {
     data: allEvents = [],
     isLoading: eventsLoading,
     error: eventsError,
-  } = useVendorEvents();
+  } = useVendorEvents(isAuthorized);
 
   const {
     data: stats,
     isLoading: statsLoading,
     error: statsError,
-  } = useVendorStats();
+  } = useVendorStats(isAuthorized);
 
   const filteredEvents = useMemo(() => {
     if (!searchQuery.trim()) return allEvents;
@@ -48,10 +51,13 @@ export default function Dashboard() {
   }, [searchQuery]);
 
   useEffect(() => {
-    if (!authLoading && !isLoggedIn) {
-      router.push("/login");
+    if (
+      !authLoading &&
+      (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN"))
+    ) {
+      router.push("/");
     }
-  }, [authLoading, isLoggedIn, router]);
+  }, [authLoading, isLoggedIn, user?.role, router]);
 
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
@@ -63,7 +69,7 @@ export default function Dashboard() {
     setDisplayedCount((prev) => prev + 8);
   };
 
-  if (authLoading || eventsLoading || statsLoading) {
+  if (authLoading || (isAuthorized && (eventsLoading || statsLoading))) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingIndicator />
@@ -71,7 +77,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!isLoggedIn) {
+  if (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN")) {
     return null;
   }
 
