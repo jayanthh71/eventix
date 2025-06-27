@@ -1,29 +1,18 @@
 "use client";
 
-import BookingCard from "@/components/ui/BookingCard";
+import Bookings from "@/components/layout/Bookings";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import updateProfile from "@/lib/auth/updateProfile";
 import useAuth from "@/lib/hooks/useAuth";
-import useBookings from "@/lib/hooks/useBookings";
 import { uploadProfileImage } from "@/lib/uploadImage";
-import { Booking, Event, Train } from "@prisma/client";
+import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { redirect } from "next/navigation";
-import { useState } from "react";
-
-type BookingWithIncludes = Booking & {
-  event?: Event | null;
-  train?: Train | null;
-};
+import { useEffect, useState } from "react";
 
 export default function Profile() {
   const { user, isLoading, error } = useAuth();
-  const {
-    upcomingBookings,
-    pastBookings,
-    isLoading: bookingsLoading,
-    cancelBooking,
-  } = useBookings();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: "",
@@ -37,12 +26,6 @@ export default function Profile() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [cancellingBookings, setCancellingBookings] = useState<Set<string>>(
-    new Set(),
-  );
-  const [activeBookingTab, setActiveBookingTab] = useState<"upcoming" | "past">(
-    "upcoming",
-  );
   const [profileError, setProfileError] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string>("");
   const [profileSuccess, setProfileSuccess] = useState<string>("");
@@ -51,15 +34,20 @@ export default function Profile() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string>("");
-  const [upcomingDisplayedCount, setUpcomingDisplayedCount] = useState(6);
-  const [pastDisplayedCount, setPastDisplayedCount] = useState(6);
 
-  if (user && profileData.name === "") {
-    setProfileData({
-      name: user.name || "",
-      email: user.email || "",
-    });
-  }
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+        email: user.email || "",
+      });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["user"] });
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+  }, [queryClient]);
 
   if (isLoading) {
     return (
@@ -110,7 +98,7 @@ export default function Profile() {
       if (response.success) {
         setProfileSuccess("Profile updated successfully!");
         setIsEditing(false);
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ["user"] });
       } else {
         setProfileError(response.error || "Failed to update profile");
       }
@@ -187,9 +175,7 @@ export default function Profile() {
       const result = await uploadProfileImage(file);
 
       if (result.success && result.imageUrl) {
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        queryClient.invalidateQueries({ queryKey: ["user"] });
       } else {
         setImageUploadError(result.error || "Failed to upload image");
       }
@@ -200,85 +186,6 @@ export default function Profile() {
       setIsUploadingImage(false);
       event.target.value = "";
     }
-  };
-
-  const handleCancelBooking = async (bookingId: string) => {
-    try {
-      setCancellingBookings((prev) => new Set(prev).add(bookingId));
-      await cancelBooking(bookingId);
-    } catch (error) {
-      console.error("Failed to cancel booking:", error);
-    } finally {
-      setCancellingBookings((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(bookingId);
-        return newSet;
-      });
-    }
-  };
-
-  const formatBookingForCard = (booking: BookingWithIncludes) => {
-    return {
-      id: booking.id,
-      quantity: booking.quantity,
-      totalPrice: booking.totalPrice,
-      time:
-        booking.time instanceof Date
-          ? booking.time.toISOString()
-          : new Date(booking.time).toISOString(),
-      status: booking.status as "PENDING" | "CONFIRMED" | "CANCELLED",
-      createdAt:
-        booking.createdAt instanceof Date
-          ? booking.createdAt.toISOString()
-          : new Date(booking.createdAt).toISOString(),
-      event: booking.event
-        ? {
-            title: booking.event.title,
-            date:
-              booking.event.date instanceof Date
-                ? booking.event.date.toISOString()
-                : new Date(booking.event.date).toISOString(),
-            location: booking.event.location,
-            imageUrl: booking.event.imageUrl || undefined,
-            category: booking.event.category as "MOVIE" | "CONCERT",
-          }
-        : undefined,
-      train: booking.train
-        ? {
-            name: booking.train.name,
-            number: booking.train.number,
-            departure:
-              booking.train.departure instanceof Date
-                ? booking.train.departure.toISOString()
-                : new Date(booking.train.departure).toISOString(),
-            arrival:
-              booking.train.arrival instanceof Date
-                ? booking.train.arrival.toISOString()
-                : new Date(booking.train.arrival).toISOString(),
-            from: booking.train.from,
-            to: booking.train.to,
-            imageUrl: booking.train.imageUrl || undefined,
-          }
-        : undefined,
-    };
-  };
-
-  // Pagination helpers for bookings
-  const displayedUpcomingBookings = upcomingBookings.slice(
-    0,
-    upcomingDisplayedCount,
-  );
-  const displayedPastBookings = pastBookings.slice(0, pastDisplayedCount);
-  const hasMoreUpcomingBookings =
-    upcomingDisplayedCount < upcomingBookings.length;
-  const hasMorePastBookings = pastDisplayedCount < pastBookings.length;
-
-  const handleShowMoreUpcoming = () => {
-    setUpcomingDisplayedCount((prev) => prev + 6);
-  };
-
-  const handleShowMorePast = () => {
-    setPastDisplayedCount((prev) => prev + 6);
   };
 
   return (
@@ -481,6 +388,74 @@ export default function Profile() {
                       disabled={!isEditing}
                       className="font-anek w-full rounded-lg border border-gray-600 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:border-gray-700 disabled:bg-gray-800/50"
                     />
+                  </div>
+
+                  <div>
+                    <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                      Account Type
+                    </label>
+                    <div className="flex items-center justify-between rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`rounded-full p-2 ${user.role === "CUSTOMER" ? "bg-blue-500/20" : "bg-purple-500/20"}`}
+                        >
+                          <svg
+                            className={`h-4 w-4 ${user.role === "CUSTOMER" ? "text-blue-400" : "text-purple-400"}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            {user.role === "CUSTOMER" ? (
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                              />
+                            ) : (
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                              />
+                            )}
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="font-anek text-sm font-medium text-white capitalize">
+                            {user.role.toLowerCase()} Account
+                          </p>
+                          <p className="font-anek text-xs text-gray-400">
+                            {user.role === "CUSTOMER"
+                              ? "Book events and manage reservations"
+                              : "Manage events and vendor operations"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        className="font-anek rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-purple-700 hover:to-blue-700"
+                        onClick={async () => {
+                          const res = await fetch("/api/auth/me", {
+                            method: "PATCH",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ switchRole: true }),
+                          });
+                          if (res.ok) {
+                            queryClient.invalidateQueries({
+                              queryKey: ["user"],
+                            });
+                          } else {
+                            alert("Failed to switch role");
+                          }
+                        }}
+                      >
+                        Switch to{" "}
+                        {user.role === "CUSTOMER" ? "Vendor" : "Customer"}
+                      </button>
+                    </div>
                   </div>
 
                   {profileError && (
@@ -750,170 +725,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="mb-12">
-            <div className="mb-8">
-              <h2 className="font-anek mb-8 text-center text-3xl font-bold text-white">
-                My Bookings
-              </h2>
-
-              <div className="relative flex justify-center">
-                <div className="flex gap-2 rounded-lg border border-gray-600/50 bg-gray-800/50 p-1 backdrop-blur-sm">
-                  <button
-                    onClick={() => setActiveBookingTab("upcoming")}
-                    className={`font-anek cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                      activeBookingTab === "upcoming"
-                        ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-                        : "text-gray-400 hover:bg-gray-700/50 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-anek">Upcoming</span>
-                      <span
-                        className={`font-anek rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                          activeBookingTab === "upcoming"
-                            ? "bg-white/20 text-white"
-                            : "bg-gray-600 text-gray-300"
-                        }`}
-                      >
-                        {upcomingBookings.length}
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setActiveBookingTab("past")}
-                    className={`font-anek cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                      activeBookingTab === "past"
-                        ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
-                        : "text-gray-400 hover:bg-gray-700/50 hover:text-white"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-anek">Past</span>
-                      <span
-                        className={`font-anek rounded-full px-1.5 py-0.5 text-xs font-medium ${
-                          activeBookingTab === "past"
-                            ? "bg-white/20 text-white"
-                            : "bg-gray-600 text-gray-300"
-                        }`}
-                      >
-                        {pastBookings.length}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => window.location.reload()}
-                  className="font-anek absolute top-0 right-0 flex cursor-pointer items-center justify-center rounded-lg border border-gray-600/50 bg-gray-800/50 px-4 py-2 text-sm font-medium text-gray-400 backdrop-blur-sm transition-all duration-200 hover:bg-gray-700/50 hover:text-white focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
-                  title="Refresh bookings"
-                >
-                  <svg
-                    className="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="relative min-h-[400px]">
-              {bookingsLoading ? (
-                <div className="flex items-center justify-center py-20">
-                  <LoadingIndicator />
-                </div>
-              ) : (
-                <>
-                  <div
-                    className={`transition-all duration-500 ${activeBookingTab === "upcoming" ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"}`}
-                  >
-                    {activeBookingTab === "upcoming" && (
-                      <>
-                        {upcomingBookings.length > 0 ? (
-                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {displayedUpcomingBookings.map((booking) => (
-                              <BookingCard
-                                key={booking.id}
-                                booking={formatBookingForCard(booking)}
-                                onCancel={() => handleCancelBooking(booking.id)}
-                                isCancelling={cancellingBookings.has(
-                                  booking.id,
-                                )}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center py-20">
-                            <p className="font-anek text-gray-400">
-                              No upcoming bookings
-                            </p>
-                          </div>
-                        )}
-
-                        {hasMoreUpcomingBookings && (
-                          <div className="mt-4 flex justify-center">
-                            <button
-                              onClick={handleShowMoreUpcoming}
-                              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-blue-600/80 to-purple-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-blue-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
-                            >
-                              Show More
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  <div
-                    className={`transition-all duration-500 ${activeBookingTab === "past" ? "opacity-100" : "pointer-events-none absolute inset-0 opacity-0"}`}
-                  >
-                    {activeBookingTab === "past" && (
-                      <>
-                        {pastBookings.length > 0 ? (
-                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {displayedPastBookings.map((booking) => (
-                              <BookingCard
-                                key={booking.id}
-                                booking={formatBookingForCard(booking)}
-                                onCancel={() => handleCancelBooking(booking.id)}
-                                isCancelling={cancellingBookings.has(
-                                  booking.id,
-                                )}
-                              />
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center py-20">
-                            <p className="font-anek text-gray-400">
-                              No past bookings
-                            </p>
-                          </div>
-                        )}
-
-                        {hasMorePastBookings && (
-                          <div className="mt-4 flex justify-center">
-                            <button
-                              onClick={handleShowMorePast}
-                              className="font-anek cursor-pointer rounded-xl bg-gradient-to-r from-blue-600/80 to-purple-600/80 px-8 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-blue-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-blue-500/30 focus:outline-none"
-                            >
-                              Show More
-                            </button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <Bookings />
         </div>
       </div>
     </div>

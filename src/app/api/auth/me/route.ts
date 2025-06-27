@@ -61,16 +61,45 @@ export async function PATCH(request: NextRequest) {
 
     const userId = decoded.id;
     const body = await request.json();
-    const { email, name, password, currentPassword, imageUrl } = body;
+    const { email, name, password, currentPassword, imageUrl, switchRole } =
+      body;
 
-    if (!email && !name && !password && !imageUrl) {
+    if (!email && !name && !password && !imageUrl && !switchRole) {
       return NextResponse.json(
         {
           error:
-            "At least one field (email, name, password, imageUrl) must be provided",
+            "At least one field (email, name, password, imageUrl, switchRole) must be provided",
         },
         { status: 400 },
       );
+    }
+
+    if (switchRole) {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+
+      if (!currentUser) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      let newRole: "CUSTOMER" | "VENDOR";
+      if (currentUser.role === "CUSTOMER") newRole = "VENDOR";
+      else if (currentUser.role === "VENDOR") newRole = "CUSTOMER";
+      else {
+        return NextResponse.json(
+          { error: "Cannot switch this role" },
+          { status: 400 },
+        );
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { role: newRole },
+      });
+
+      return NextResponse.json(updatedUser, { status: 200 });
     }
 
     if (password) {

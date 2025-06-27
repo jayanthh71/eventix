@@ -105,6 +105,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  WALLET
+  STRIPE
+}
+
 model Booking {
   id         String        @id @default(cuid())
   userId     String
@@ -114,6 +119,9 @@ model Booking {
   totalPrice Float
   time       DateTime
   status     BookingStatus @default(PENDING)
+
+  paymentMethod   PaymentMethod @default(WALLET)
+  paymentIntentId String?       @unique
 
   user  User   @relation(fields: [userId], references: [id])
   event Event? @relation(fields: [eventId], references: [id])

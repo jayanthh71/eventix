@@ -197,7 +197,6 @@ export default async function handleForgot(email: string) {
     }
 
     await transporter.sendMail(mailOptions);
-    console.log(`Password reset email sent successfully to ${email}`);
   } catch (err) {
     console.error(`Failed to send password reset email to ${email}:`, err);
   }

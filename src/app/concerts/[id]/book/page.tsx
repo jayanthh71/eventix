@@ -2,6 +2,7 @@
 
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
+import StripePaymentForm from "@/components/ui/StripePaymentForm";
 import { downloadTicket } from "@/lib/events/generateTicket";
 import useAuth from "@/lib/hooks/useAuth";
 import { useConcertById } from "@/lib/hooks/useData";
@@ -44,73 +45,104 @@ export default function ConcertBooking({
   const handleBooking = async () => {
     if (!concert || !user) return;
 
-    setIsBooking(true);
-    setBookingError(null);
-
-    try {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          eventId: concert.id,
-          quantity: seats,
-          totalPrice,
-          time: new Date(concert.date),
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create booking");
-      }
-
-      const bookingData = await response.json();
-      const bookingId = bookingData.booking.id;
-
-      const bookingResponse = await fetch(`/api/bookings?id=${bookingId}`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!bookingResponse.ok) {
-        throw new Error("Failed to fetch booking details");
-      }
-
-      const fullBooking: Booking = await bookingResponse.json();
-      setCreatedBooking(fullBooking);
-      setBookingSuccess(true);
+    if (paymentMethod === "wallet") {
+      setIsBooking(true);
+      setBookingError(null);
 
       try {
-        const emailResponse = await fetch("/api/send-email", {
+        const response = await fetch("/api/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            eventId: concert.id,
+            quantity: seats,
+            totalPrice,
+            time: new Date(concert.date),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to create booking");
+        }
+
+        const bookingData = await response.json();
+        const bookingId = bookingData.booking.id;
+
+        const bookingResponse = await fetch(`/api/bookings?id=${bookingId}`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!bookingResponse.ok) {
+          throw new Error("Failed to fetch booking details");
+        }
+
+        const fullBooking: Booking = await bookingResponse.json();
+        setCreatedBooking(fullBooking);
+        setBookingSuccess(true);
+
+        try {
+          const emailResponse = await fetch("/api/bookings/email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              bookingId: fullBooking.id,
+              userId: user.id,
+            }),
+            credentials: "include",
+          });
+
+          if (!emailResponse.ok) {
+            console.error("Failed to send confirmation email");
+          }
+        } catch (emailError) {
+          console.error("Failed to send confirmation email:", emailError);
+        }
+      } catch (error) {
+        setBookingError(
+          error instanceof Error ? error.message : "Booking failed",
+        );
+      } finally {
+        setIsBooking(false);
+      }
+    }
+  };
+
+  const handleStripeSuccess = async (booking: Booking) => {
+    setCreatedBooking(booking);
+    setBookingSuccess(true);
+
+    if (user) {
+      try {
+        const emailResponse = await fetch("/api/bookings/email", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            bookingId: fullBooking.id,
+            bookingId: booking.id,
             userId: user.id,
           }),
           credentials: "include",
         });
 
-        if (emailResponse.ok) {
-          console.log("Confirmation email sent successfully");
-        } else {
+        if (!emailResponse.ok) {
           console.error("Failed to send confirmation email");
         }
       } catch (emailError) {
         console.error("Failed to send confirmation email:", emailError);
       }
-    } catch (error) {
-      setBookingError(
-        error instanceof Error ? error.message : "Booking failed",
-      );
-    } finally {
-      setIsBooking(false);
     }
+  };
+
+  const handleStripeError = (error: string) => {
+    setBookingError(error);
   };
 
   const handleDownloadTicket = async () => {
@@ -587,6 +619,19 @@ export default function ConcertBooking({
                     </p>
                   </div>
                 )}
+
+              {paymentMethod === "card" && (
+                <div className="mt-6">
+                  <StripePaymentForm
+                    amount={totalPrice}
+                    eventId={concert.id}
+                    quantity={seats}
+                    time={new Date(concert.date).toISOString()}
+                    onSuccess={handleStripeSuccess}
+                    onError={handleStripeError}
+                  />
+                </div>
+              )}
             </div>
 
             {bookingError && (
@@ -597,45 +642,47 @@ export default function ConcertBooking({
               </div>
             )}
 
-            <button
-              onClick={handleBooking}
-              disabled={
-                isBooking ||
-                !!(
-                  paymentMethod === "wallet" &&
-                  user &&
-                  (user.balance ?? 0) < totalPrice
-                )
-              }
-              className="font-anek w-full cursor-pointer rounded-xl bg-gradient-to-r from-purple-600/80 to-pink-600/80 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-purple-500/80 hover:to-pink-500/80 focus:ring-2 focus:ring-purple-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-            >
-              {isBooking ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg
-                    className="h-5 w-5 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </span>
-              ) : (
-                `Confirm Booking - ₹${totalPrice.toFixed(2)}`
-              )}
-            </button>
+            {paymentMethod === "wallet" && (
+              <button
+                onClick={handleBooking}
+                disabled={
+                  isBooking ||
+                  !!(
+                    paymentMethod === "wallet" &&
+                    user &&
+                    (user.balance ?? 0) < totalPrice
+                  )
+                }
+                className="font-anek w-full cursor-pointer rounded-xl bg-gradient-to-r from-purple-600/80 to-pink-600/80 px-8 py-4 text-lg font-bold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-purple-500/80 hover:to-pink-500/80 focus:ring-2 focus:ring-purple-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isBooking ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg
+                      className="h-5 w-5 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Processing...
+                  </span>
+                ) : (
+                  `Pay with Wallet - ₹${totalPrice.toFixed(2)}`
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

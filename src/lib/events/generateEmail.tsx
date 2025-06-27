@@ -376,7 +376,6 @@ export default async function generateEmail(
     }
 
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully to ${user.email}`);
   } catch (err) {
     console.error(`Failed to send email to ${user.email}:`, err);
   }

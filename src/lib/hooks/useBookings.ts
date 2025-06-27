@@ -49,6 +49,7 @@ export default function useBookings() {
     data: bookings = [],
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["bookings"],
     queryFn: fetchBookings,
@@ -88,5 +89,6 @@ export default function useBookings() {
     cancelBooking: cancelMutation.mutate,
     isCancelling: cancelMutation.isPending,
     cancelError: cancelMutation.error,
+    refreshBookings: refetch,
   };
 }

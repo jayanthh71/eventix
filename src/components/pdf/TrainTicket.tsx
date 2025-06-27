@@ -213,7 +213,6 @@ export default function TrainTicket({
 }) {
   const trainDateTime = new Date(booking.time);
   const qrCode = generateQR(booking, user, undefined, train);
-  console.log("QR Code Data URL:", qrCode);
 
   return (
     <Document>

@@ -35,10 +35,6 @@ export async function deleteImageFromS3(imageUrl: string): Promise<boolean> {
   try {
     const key = extractS3KeyFromUrl(imageUrl);
     if (!key) {
-      console.log(
-        "Invalid S3 URL or not a profile image, skipping deletion:",
-        imageUrl,
-      );
       return false;
     }
 
@@ -48,7 +44,6 @@ export async function deleteImageFromS3(imageUrl: string): Promise<boolean> {
     });
 
     await s3Client.send(command);
-    console.log("Successfully deleted old profile image:", key);
     return true;
   } catch (error) {
     console.error("Error deleting image from S3:", error);

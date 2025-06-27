@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
           totalPrice,
           time: new Date(time),
           status: "CONFIRMED",
+          paymentMethod: "WALLET",
         },
         include: {
           event: true,

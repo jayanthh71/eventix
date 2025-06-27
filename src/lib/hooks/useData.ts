@@ -1,11 +1,19 @@
-import { EventCategory, Train } from "@prisma/client";
+import { Event, EventCategory, Train } from "@prisma/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+type EventWithVendor = Event & {
+  vendor: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+  } | null;
+};
 
 async function fetchEvents(
   category: EventCategory | "BOTH" = "BOTH",
   sortBy: "date" | "createdAt" = "date",
   take: number = 15,
-) {
+): Promise<EventWithVendor[]> {
   try {
     const params = new URLSearchParams({
       category: category,
@@ -43,7 +51,7 @@ async function fetchTrains(take: number = 25): Promise<Train[]> {
   }
 }
 
-async function fetchEventById(id: string) {
+async function fetchEventById(id: string): Promise<EventWithVendor | null> {
   try {
     const response = await fetch(`/api/events?id=${id}`);
     if (!response.ok) {
@@ -147,7 +155,7 @@ export function useEntityById<T extends { id: string }>(
 }
 
 export function useConcertById(id: string) {
-  return useEntityById(
+  return useEntityById<EventWithVendor>(
     "event",
     id,
     [
@@ -162,7 +170,7 @@ export function useConcertById(id: string) {
 }
 
 export function useMovieById(id: string) {
-  return useEntityById(
+  return useEntityById<EventWithVendor>(
     "event",
     id,
     [
@@ -177,5 +185,5 @@ export function useMovieById(id: string) {
 }
 
 export function useTrainById(id: string) {
-  return useEntityById("train", id, [["trains"]], fetchTrainById);
+  return useEntityById<Train>("train", id, [["trains"]], fetchTrainById);
 }
