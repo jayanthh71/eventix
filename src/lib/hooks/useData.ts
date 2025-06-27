@@ -58,8 +58,15 @@ async function fetchEventById(id: string): Promise<EventWithVendor | null> {
       if (response.status === 404) return null;
       throw new Error(`Failed to fetch event: ${response.status}`);
     }
-    const events = await response.json();
-    return events[0] || null;
+    const result = await response.json();
+
+    if (Array.isArray(result)) {
+      return result[0] || null;
+    } else if (result.success && result.event) {
+      return result.event;
+    } else {
+      return null;
+    }
   } catch (error) {
     console.error("Error fetching event:", error);
     throw error;

@@ -16,9 +16,10 @@ export default function VendorEventCard(event: Event) {
       <div className="relative overflow-hidden">
         <Image
           src={
-            event.imageUrl || event.category === EventCategory.MOVIE
+            event.imageUrl ||
+            (event.category === EventCategory.MOVIE
               ? "/movie.jpg"
-              : "/concert.jpg"
+              : "/concert.jpg")
           }
           alt={event.title}
           width={300}
