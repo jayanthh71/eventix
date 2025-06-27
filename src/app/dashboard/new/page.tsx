@@ -1,7 +1,6 @@
 "use client";
 
 import DatePicker from "@/components/ui/DatePicker";
-import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";

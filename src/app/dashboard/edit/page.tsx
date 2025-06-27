@@ -7,7 +7,6 @@ import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
