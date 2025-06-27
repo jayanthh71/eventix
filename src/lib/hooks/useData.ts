@@ -81,6 +81,48 @@ async function fetchTrainById(id: string): Promise<Train | null> {
   }
 }
 
+async function fetchVendorEvents(): Promise<EventWithVendor[]> {
+  try {
+    const response = await fetch("/api/events?vendor=true", {
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch vendor events: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching vendor events:", error);
+    return [];
+  }
+}
+
+type VendorStats = {
+  totalEvents: number;
+  totalAttendees: number;
+  totalRevenue: number;
+};
+
+async function fetchVendorStats(): Promise<VendorStats> {
+  try {
+    const response = await fetch("/api/events/stats", {
+      credentials: "include",
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch vendor stats: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("Error fetching vendor stats:", error);
+    return {
+      totalEvents: 0,
+      totalAttendees: 0,
+      totalRevenue: 0,
+    };
+  }
+}
+
 export function useEvents(
   category: EventCategory | "BOTH" = "BOTH",
   sortBy: "date" | "createdAt" = "date",
@@ -187,3 +229,21 @@ export function useMovieById(id: string) {
 export function useTrainById(id: string) {
   return useEntityById<Train>("train", id, [["trains"]], fetchTrainById);
 }
+
+export function useVendorEvents() {
+  return useQuery({
+    queryKey: ["vendor-events"],
+    queryFn: fetchVendorEvents,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useVendorStats() {
+  return useQuery({
+    queryKey: ["vendor-stats"],
+    queryFn: fetchVendorStats,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export { type VendorStats };

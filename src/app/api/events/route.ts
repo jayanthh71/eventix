@@ -66,6 +66,60 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get("category")?.toUpperCase() || "BOTH";
   const sortBy = searchParams.get("sortBy") || "date";
   const take = parseInt(searchParams.get("take") || "50");
+  const vendor = searchParams.get("vendor") === "true";
+
+  if (vendor) {
+    try {
+      const cookieHeader = request.headers.get("cookie");
+      let userId: string | null = null;
+
+      if (cookieHeader) {
+        const response = await fetch(`${request.nextUrl.origin}/api/auth/me`, {
+          headers: {
+            cookie: cookieHeader,
+          },
+        });
+
+        if (response.ok) {
+          const user = await response.json();
+          userId = user.id;
+        }
+      }
+
+      if (!userId) {
+        return NextResponse.json(
+          { error: "Authentication required" },
+          { status: 401 },
+        );
+      }
+
+      const events = await prisma.event.findMany({
+        where: {
+          vendorId: userId,
+        },
+        include: {
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+            },
+          },
+        },
+        orderBy: {
+          [sortBy]: sortBy === "createdAt" ? "desc" : "asc",
+        },
+      });
+
+      return NextResponse.json(events, { status: 200 });
+    } catch (error) {
+      console.error("Error fetching vendor events:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch vendor events" },
+        { status: 500 },
+      );
+    }
+  }
 
   if (id) {
     try {
