@@ -1,141 +1,141 @@
 "use client";
 
 import DatePicker from "@/components/ui/DatePicker";
-import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";
+import { EventCategory } from "@prisma/client";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-function EditEventContent() {
+type MovieForm = {
+  title: string;
+  description: string;
+  imageUrl: string;
+  location: string;
+  price: string;
+  category: "MOVIE";
+  date: string;
+  showtimes: string[];
+};
+type ConcertForm = {
+  title: string;
+  description: string;
+  imageUrl: string;
+  location: string;
+  price: string;
+  category: "CONCERT";
+  date: string;
+  time: string;
+};
+type FormState = MovieForm | ConcertForm;
+
+export default function AdminNewEvent() {
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const eventId = searchParams.get("event");
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageUploadError, setImageUploadError] = useState("");
+  const [imageUploadError, setImageUploadError] = useState<string>("");
   const [imageJustUploaded, setImageJustUploaded] = useState(false);
-  const [originalImageUrl, setOriginalImageUrl] = useState("");
-  const [newlyUploadedImageUrl, setNewlyUploadedImageUrl] = useState("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
   const [wasSuccessfullySubmitted, setWasSuccessfullySubmitted] =
     useState(false);
+  const [activeTab, setActiveTab] = useState<EventCategory>(
+    EventCategory.MOVIE,
+  );
+  const [currentShowtimeInput, setCurrentShowtimeInput] = useState<string>("");
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     title: "",
     description: "",
     imageUrl: "",
-    date: "",
-    time: "",
     location: "",
     price: "",
+    category: EventCategory.MOVIE,
+    date: "",
+    showtimes: [],
   });
 
   useEffect(() => {
-    if (
-      !authLoading &&
-      (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN"))
-    ) {
+    if (!authLoading && (!isLoggedIn || user?.role !== "ADMIN")) {
       router.push("/");
-      return;
     }
+  }, [authLoading, isLoggedIn, user?.role, router]);
 
-    if (!eventId) {
-      setError("Event ID not provided");
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchEvent = async () => {
-      try {
-        const response = await fetch(`/api/events?id=${eventId}`);
-        const result = await response.json();
-
-        if (response.ok) {
-          const event = result.event;
-          const eventDate = new Date(event.date);
-
-          if (isNaN(eventDate.getTime())) {
-            setError("Invalid event date format");
-            return;
-          }
-
-          setFormData({
-            title: event.title || "",
-            description: event.description || "",
-            imageUrl: event.imageUrl || "",
-            date: eventDate.toISOString().split("T")[0],
-            time: eventDate.toTimeString().slice(0, 5),
-            location: event.location || "",
-            price: event.price?.toString() || "",
-          });
-
-          setOriginalImageUrl(event.imageUrl || "");
-          setImageUploadError("");
-          setImageJustUploaded(false);
-
-          console.log("Fetched event data:", event);
-          console.log("Set imageUrl:", event.imageUrl || "");
-        } else {
-          setError(result.error || "Failed to fetch event");
-        }
-      } catch (error) {
-        console.error("Error fetching event:", error);
-        setError("Failed to load event data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isLoggedIn && eventId) {
-      fetchEvent();
-    }
-  }, [authLoading, isLoggedIn, user?.role, router, eventId]);
-
-  const cleanupNewlyUploadedImage = async () => {
-    if (
-      newlyUploadedImageUrl &&
-      newlyUploadedImageUrl !== originalImageUrl &&
-      !wasSuccessfullySubmitted
-    ) {
+  const cleanupUploadedImage = async () => {
+    if (uploadedImageUrl && !wasSuccessfullySubmitted) {
       try {
         const response = await fetch("/api/delete/event-image", {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ imageUrl: newlyUploadedImageUrl }),
+          body: JSON.stringify({ imageUrl: uploadedImageUrl }),
         });
 
         if (response.ok) {
           console.log(
-            "Successfully cleaned up newly uploaded image:",
-            newlyUploadedImageUrl,
+            "Successfully cleaned up uploaded image:",
+            uploadedImageUrl,
           );
         } else {
-          console.warn(
-            "Could not clean up newly uploaded image:",
-            newlyUploadedImageUrl,
-          );
+          console.warn("Could not clean up uploaded image:", uploadedImageUrl);
         }
       } catch (error) {
-        console.error("Failed to clean up newly uploaded image:", error);
+        console.error("Failed to clean up uploaded image:", error);
       }
     }
   };
 
-  const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const updateField = (
+    field: keyof MovieForm | keyof ConcertForm,
+    value: string | EventCategory,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }) as FormState);
     if (error) setError("");
     if (success) setSuccess("");
+    if (imageJustUploaded) setImageJustUploaded(false);
+  };
+
+  const removeShowtime = (idx: number) => {
+    if (formData.category !== "MOVIE") return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      const newShowtimes = prev.showtimes.filter((_, i) => i !== idx);
+      return {
+        ...prev,
+        showtimes: newShowtimes.length > 0 ? newShowtimes : [""],
+      };
+    });
+  };
+
+  const addShowtimeFromInput = () => {
+    if (formData.category !== "MOVIE") return;
+    const input = currentShowtimeInput.trim();
+    if (!input || !validateTime(input)) return;
+    if (formData.showtimes.includes(input)) return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      return {
+        ...prev,
+        showtimes: [...prev.showtimes, input],
+      };
+    });
+    setCurrentShowtimeInput("");
+  };
+
+  const handleShowtimeInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      addShowtimeFromInput();
+    }
   };
 
   const validateTime = (timeString: string): boolean => {
@@ -240,20 +240,6 @@ function EditEventContent() {
     return cleaned;
   };
 
-  const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const input = e.target as HTMLInputElement;
-    const { value, selectionStart } = input;
-
-    if (e.key === "Backspace" && selectionStart === 3 && value[2] === ":") {
-      e.preventDefault();
-      const newValue = value.slice(0, 2);
-      updateField("time", newValue);
-      setTimeout(() => {
-        input.setSelectionRange(2, 2);
-      }, 0);
-    }
-  };
-
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -269,11 +255,7 @@ function EditEventContent() {
       if (result.success && result.imageUrl) {
         console.log("Image upload successful, URL:", result.imageUrl);
         setFormData((prev) => ({ ...prev, imageUrl: result.imageUrl! }));
-
-        if (result.imageUrl !== originalImageUrl) {
-          setNewlyUploadedImageUrl(result.imageUrl);
-        }
-
+        setUploadedImageUrl(result.imageUrl);
         setImageJustUploaded(true);
       } else {
         console.error("Image upload failed:", result.error);
@@ -314,11 +296,7 @@ function EditEventContent() {
     }
 
     setFormData((prev) => ({ ...prev, imageUrl: "" }));
-
-    if (formData.imageUrl === newlyUploadedImageUrl) {
-      setNewlyUploadedImageUrl("");
-    }
-
+    setUploadedImageUrl("");
     setImageJustUploaded(false);
   };
 
@@ -327,10 +305,51 @@ function EditEventContent() {
     setError("");
     setSuccess("");
     setIsSubmitting(true);
-
     try {
-      if (!validateTime(formData.time)) {
-        setError("Please enter a valid time in HH:MM format (24-hour)");
+      let payload;
+      if (activeTab === EventCategory.MOVIE && formData.category === "MOVIE") {
+        if (!formData.date) {
+          setError("Please select a date for the movie");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const validShowtimes = formData.showtimes.filter(
+          (t) => t.trim() !== "",
+        );
+        if (validShowtimes.length === 0) {
+          setError("Please enter at least one showtime");
+          setIsSubmitting(false);
+          return;
+        }
+
+        for (const t of validShowtimes) {
+          if (!validateTime(t)) {
+            setError("Please enter valid time for all showtimes");
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
+        payload = {
+          ...formData,
+          showtimes: validShowtimes.map((t) => `${formData.date}T${t}`),
+        };
+      } else if (
+        activeTab === EventCategory.CONCERT &&
+        formData.category === "CONCERT"
+      ) {
+        if (!formData.date || !validateTime(formData.time)) {
+          setError("Please enter a valid date and time");
+          setIsSubmitting(false);
+          return;
+        }
+        payload = {
+          ...formData,
+          date: `${formData.date}T${formData.time}`,
+        };
+      } else {
+        setError("Invalid form state");
         setIsSubmitting(false);
         return;
       }
@@ -341,123 +360,38 @@ function EditEventContent() {
         return;
       }
 
-      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-
-      if (eventDateTime <= new Date()) {
-        setError("Event date must be in the future");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const response = await fetch(`/api/events?id=${eventId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          imageUrl: formData.imageUrl || null,
-          date: eventDateTime.toISOString(),
-          location: formData.location,
-          price: parseFloat(formData.price),
-          category: "CONCERT",
-        }),
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
       const result = await response.json();
-
       if (response.ok) {
-        setSuccess("Event updated successfully!");
-
+        setSuccess("Event created successfully!");
         setWasSuccessfullySubmitted(true);
-        setNewlyUploadedImageUrl("");
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
-
+        setUploadedImageUrl("");
+        queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/admin");
         }, 1500);
       } else {
-        setError(result.error || "Failed to update event");
+        setError(result.error || "Failed to create event");
       }
-    } catch (error) {
-      console.error("Error updating event:", error);
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!eventId) return;
-
-    setError("");
-    setSuccess("");
-    setIsDeleting(true);
-
-    try {
-      if (formData.imageUrl && formData.imageUrl !== originalImageUrl) {
-        try {
-          const response = await fetch("/api/delete/event-image", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ imageUrl: formData.imageUrl }),
-          });
-
-          if (response.ok) {
-            console.log(
-              "Successfully cleaned up newly uploaded image:",
-              formData.imageUrl,
-            );
-          } else {
-            console.warn(
-              "Could not clean up newly uploaded image:",
-              formData.imageUrl,
-            );
-          }
-        } catch (error) {
-          console.error("Failed to clean up newly uploaded image:", error);
-        }
-      }
-
-      const response = await fetch(`/api/events?id=${eventId}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setSuccess("Event deleted successfully!");
-
-        setWasSuccessfullySubmitted(true);
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
-
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1500);
-      } else {
-        setError(result.error || "Failed to delete event");
-      }
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const handleCancel = async () => {
-    await cleanupNewlyUploadedImage();
-    router.push("/dashboard");
+    await cleanupUploadedImage();
+    router.push("/admin");
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingIndicator />
@@ -469,20 +403,14 @@ function EditEventContent() {
     return null;
   }
 
-  if (!eventId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <ErrorMessage message="The event ID was not provided." />
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-[calc(100vh-5rem)] justify-center bg-gray-900 px-4 sm:px-6">
       <div className="flex w-full max-w-2xl flex-col gap-8 p-12">
         <div className="font-anek flex flex-col items-center gap-4 text-white">
-          <h1 className="text-3xl font-bold">Edit Event</h1>
-          <p className="text-center text-lg text-gray-300">Edit your event</p>
+          <h1 className="text-3xl font-bold">Create New Event</h1>
+          <p className="text-center text-lg text-gray-300">
+            Fill in the details to create your event
+          </p>
         </div>
 
         <form
@@ -529,17 +457,81 @@ function EditEventContent() {
             </div>
           )}
 
+          <div className="mb-6 flex w-full justify-center">
+            <div className="relative flex gap-2 rounded-lg border border-gray-600/50 bg-gray-800/50 p-1 backdrop-blur-sm">
+              <button
+                type="button"
+                className={`font-anek cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  activeTab === EventCategory.MOVIE
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                    : "text-gray-400 hover:bg-gray-700/50 hover:text-white"
+                }`}
+                onClick={() => {
+                  setActiveTab(EventCategory.MOVIE);
+                  setFormData({
+                    title: "",
+                    description: "",
+                    imageUrl: "",
+                    location: "",
+                    price: "",
+                    category: EventCategory.MOVIE,
+                    date: "",
+                    showtimes: [],
+                  });
+                  setCurrentShowtimeInput("");
+                  setError("");
+                  setSuccess("");
+                }}
+              >
+                <span className="font-anek">Movie</span>
+              </button>
+              <button
+                type="button"
+                className={`font-anek cursor-pointer rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                  activeTab === EventCategory.CONCERT
+                    ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
+                    : "text-gray-400 hover:bg-gray-700/50 hover:text-white"
+                }`}
+                onClick={() => {
+                  setActiveTab(EventCategory.CONCERT);
+                  setFormData({
+                    title: "",
+                    description: "",
+                    imageUrl: "",
+                    location: "",
+                    price: "",
+                    category: EventCategory.CONCERT,
+                    date: "",
+                    time: "",
+                  });
+                  setCurrentShowtimeInput("");
+                  setError("");
+                  setSuccess("");
+                }}
+              >
+                <span className="font-anek">Concert</span>
+              </button>
+            </div>
+          </div>
+
           <div className="space-y-6">
             <div>
               <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                Event Title *
+                {formData.category === EventCategory.MOVIE
+                  ? "Movie"
+                  : "Concert"}{" "}
+                Title *
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => updateField("title", e.target.value)}
                 className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                placeholder="Enter concert title"
+                placeholder={
+                  formData.category === EventCategory.MOVIE
+                    ? "Enter movie title"
+                    : "Enter concert title"
+                }
                 required
               />
             </div>
@@ -553,7 +545,11 @@ function EditEventContent() {
                 onChange={(e) => updateField("description", e.target.value)}
                 rows={4}
                 className="font-anek w-full resize-none rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                placeholder="Describe your concert event"
+                placeholder={
+                  formData.category === EventCategory.MOVIE
+                    ? "Describe the movie plot, cast, and details"
+                    : "Describe the concert, artists, and event details"
+                }
                 required
               />
             </div>
@@ -726,51 +722,147 @@ function EditEventContent() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                  Date *
-                </label>
-                <DatePicker
-                  value={formData.date}
-                  onDateChangeAction={(date) => updateField("date", date)}
-                  minDate={new Date().toISOString().split("T")[0]}
-                  required
-                  placeholder="Select event date"
-                />
-              </div>
-              <div>
-                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                  Time *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.time}
-                    onChange={(e) => {
-                      const formatted = formatTimeInput(e.target.value);
-                      updateField("time", formatted);
-                    }}
-                    onKeyDown={handleTimeKeyDown}
-                    className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
-                      formData.time && !validateTime(formData.time)
-                        ? "border-red-500/50"
-                        : "border-gray-600/50"
-                    }`}
-                    placeholder="HH:MM"
-                    pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                    maxLength={5}
-                    inputMode="numeric"
+            {activeTab === EventCategory.CONCERT &&
+            formData.category === "CONCERT" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                    Date *
+                  </label>
+                  <DatePicker
+                    value={formData.date}
+                    onDateChangeAction={(date) => updateField("date", date)}
+                    minDate={new Date().toISOString().split("T")[0]}
                     required
+                    placeholder="Select event date"
                   />
                 </div>
-                {formData.time && !validateTime(formData.time) && (
-                  <p className="font-anek mt-1 text-xs text-red-400">
-                    Please enter a valid time in HH:MM format
-                  </p>
+                <div>
+                  <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                    Time *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.time}
+                      onChange={(e) => {
+                        const formatted = formatTimeInput(e.target.value);
+                        updateField("time", formatted);
+                      }}
+                      maxLength={5}
+                      inputMode="numeric"
+                      className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
+                        formData.time && !validateTime(formData.time)
+                          ? "border-red-500/50"
+                          : "border-gray-600/50"
+                      }`}
+                      placeholder="HH:MM"
+                      pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+                      required
+                    />
+                  </div>
+                  {formData.time && !validateTime(formData.time) && (
+                    <p className="font-anek mt-1 text-xs text-red-400">
+                      Please enter a valid time in HH:MM format
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {activeTab === EventCategory.MOVIE &&
+            formData.category === "MOVIE" ? (
+              <div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                      Date *
+                    </label>
+                    <DatePicker
+                      value={formData.date}
+                      onDateChangeAction={(date) => updateField("date", date)}
+                      minDate={new Date().toISOString().split("T")[0]}
+                      required
+                      placeholder="Select event date"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                      Showtimes *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={currentShowtimeInput}
+                        onChange={(e) => {
+                          const formatted = formatTimeInput(e.target.value);
+                          setCurrentShowtimeInput(formatted);
+                        }}
+                        onKeyDown={handleShowtimeInputKeyDown}
+                        maxLength={5}
+                        inputMode="numeric"
+                        className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
+                          currentShowtimeInput &&
+                          !validateTime(currentShowtimeInput)
+                            ? "border-red-500/50"
+                            : "border-gray-600/50"
+                        }`}
+                        placeholder="Enter time (HH:MM)"
+                      />
+                    </div>
+                    {currentShowtimeInput &&
+                      !validateTime(currentShowtimeInput) && (
+                        <p className="font-anek mt-1 text-xs text-red-400">
+                          Please enter a valid time in HH:MM format
+                        </p>
+                      )}
+                  </div>
+                </div>
+
+                {formData.showtimes.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {formData.showtimes.map((showtime, idx) => (
+                      <div
+                        key={idx}
+                        className="group flex items-center gap-1.5 rounded-lg bg-gray-700/80 px-2.5 py-1.5 text-sm text-white backdrop-blur-sm transition-all duration-200 hover:bg-gray-600/80"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5 text-gray-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="font-anek text-xs font-medium">
+                          {showtime}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeShowtime(idx)}
+                          className="ml-0.5 rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-600/50 hover:text-gray-300"
+                        >
+                          <svg
+                            className="h-3 w-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
+            ) : null}
 
             <div>
               <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
@@ -817,67 +909,16 @@ function EditEventContent() {
           </div>
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-between">
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="font-anek flex cursor-pointer items-center justify-center rounded-xl border border-gray-600/50 bg-gray-700/50 px-6 py-3 font-semibold text-gray-300 backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 hover:bg-gray-600/50 focus:ring-2 focus:ring-gray-500/30 focus:outline-none"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={isDeleting || isSubmitting}
-                className="font-anek flex cursor-pointer items-center justify-center rounded-xl bg-gradient-to-r from-red-600/80 to-red-700/80 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-red-500/80 hover:to-red-600/80 focus:ring-2 focus:ring-red-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {isDeleting ? (
-                  <>
-                    <svg
-                      className="mr-2 h-5 w-5 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="mr-2 h-5 w-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                    Delete Event
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="font-anek flex cursor-pointer items-center justify-center rounded-xl border border-gray-600/50 bg-gray-700/50 px-6 py-3 font-semibold text-gray-300 backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 hover:bg-gray-600/50 focus:ring-2 focus:ring-gray-500/30 focus:outline-none"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
-              disabled={isSubmitting || isDeleting}
+              disabled={isSubmitting}
               className="font-anek flex cursor-pointer items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600/80 to-purple-600/80 px-8 py-3 font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-indigo-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
               {isSubmitting ? (
@@ -902,29 +943,15 @@ function EditEventContent() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Updating...
+                  Creating...
                 </>
               ) : (
-                "Update Event"
+                `Create ${activeTab === EventCategory.MOVIE ? "Movie" : "Concert"}`
               )}
             </button>
           </div>
         </form>
       </div>
     </div>
-  );
-}
-
-export default function EditEvent() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <LoadingIndicator />
-        </div>
-      }
-    >
-      <EditEventContent />
-    </Suspense>
   );
 }

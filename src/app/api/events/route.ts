@@ -29,22 +29,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, imageUrl, date, location, price, category } =
-      body;
+    const {
+      title,
+      description,
+      imageUrl,
+      date,
+      showtimes,
+      location,
+      price,
+      category,
+    } = body;
 
-    if (!title || !description || !date || !location || !price || !category) {
+    if (!title || !description || !location || !price || !category) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 },
       );
-    }
-
-    if (isNaN(Date.parse(date)) || new Date(date) <= new Date()) {
-      return NextResponse.json({ error: "Invalid date" }, { status: 400 });
-    }
-
-    if (price <= 0) {
-      return NextResponse.json({ error: "Invalid price" }, { status: 400 });
     }
 
     const categoryUpper = category.toUpperCase();
@@ -52,20 +52,78 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
-    const newEvent = await prisma.event.create({
-      data: {
+    // Validate date and showtimes based on category
+    if (categoryUpper === "MOVIE") {
+      if (!showtimes || !Array.isArray(showtimes) || showtimes.length === 0) {
+        return NextResponse.json(
+          { error: "Showtimes are required for movies" },
+          { status: 400 },
+        );
+      }
+
+      // Validate each showtime
+      for (const showtime of showtimes) {
+        if (isNaN(Date.parse(showtime)) || new Date(showtime) <= new Date()) {
+          return NextResponse.json(
+            { error: "Invalid showtime - must be in the future" },
+            { status: 400 },
+          );
+        }
+      }
+    } else if (categoryUpper === "CONCERT") {
+      if (!date || isNaN(Date.parse(date)) || new Date(date) <= new Date()) {
+        return NextResponse.json(
+          { error: "Valid future date is required for concerts" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (price <= 0) {
+      return NextResponse.json({ error: "Invalid price" }, { status: 400 });
+    }
+
+    // Prepare event data based on category
+    let eventData: {
+      title: string;
+      description: string;
+      imageUrl?: string;
+      date: Date;
+      showtimes: Date[];
+      location: string;
+      price: number;
+      category: EventCategory;
+      vendorId: string;
+    };
+
+    if (categoryUpper === "MOVIE") {
+      eventData = {
+        title,
+        description,
+        imageUrl,
+        date: new Date(showtimes[0]), // Set the main date to the first showtime
+        showtimes: showtimes.map((showtime: string) => new Date(showtime)),
+        location,
+        price: parseFloat(price),
+        category: EventCategory.MOVIE,
+        vendorId: userId,
+      };
+    } else {
+      eventData = {
         title,
         description,
         imageUrl,
         date: new Date(date),
+        showtimes: [], // Empty array for concerts
         location,
         price: parseFloat(price),
-        category:
-          categoryUpper === "MOVIE"
-            ? EventCategory.MOVIE
-            : EventCategory.CONCERT,
+        category: EventCategory.CONCERT,
         vendorId: userId,
-      },
+      };
+    }
+
+    const newEvent = await prisma.event.create({
+      data: eventData,
       include: {
         vendor: {
           select: {
@@ -106,6 +164,7 @@ export async function GET(request: NextRequest) {
     try {
       const cookieHeader = request.headers.get("cookie");
       let userId: string | null = null;
+      let userRole: string | null = null;
 
       if (cookieHeader) {
         const response = await fetch(`${request.nextUrl.origin}/api/auth/me`, {
@@ -117,6 +176,7 @@ export async function GET(request: NextRequest) {
         if (response.ok) {
           const user = await response.json();
           userId = user.id;
+          userRole = user.role;
         }
       }
 
@@ -127,10 +187,20 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // For admin users, allow access to any event
+      const whereClause =
+        userRole === "ADMIN" ? { id: id } : { id: id, vendorId: userId };
+
       const event = await prisma.event.findUnique({
-        where: {
-          id: id,
-          vendorId: userId,
+        where: whereClause,
+        include: {
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+            },
+          },
         },
       });
 
@@ -399,6 +469,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get("cookie");
     let userId: string | null = null;
+    let userRole: string | null = null;
 
     if (cookieHeader) {
       const response = await fetch(`${request.nextUrl.origin}/api/auth/me`, {
@@ -410,6 +481,7 @@ export async function DELETE(request: NextRequest) {
       if (response.ok) {
         const user = await response.json();
         userId = user.id;
+        userRole = user.role;
       }
     }
 
@@ -430,11 +502,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // For admin users, allow access to any event
+    const whereClause =
+      userRole === "ADMIN"
+        ? { id: eventId }
+        : { id: eventId, vendorId: userId };
+
     const existingEvent = await prisma.event.findUnique({
-      where: {
-        id: eventId,
-        vendorId: userId,
-      },
+      where: whereClause,
     });
 
     if (!existingEvent) {
@@ -465,6 +540,192 @@ export async function DELETE(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error deleting event:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const cookieHeader = request.headers.get("cookie");
+    let userId: string | null = null;
+    let userRole: string | null = null;
+
+    if (cookieHeader) {
+      const response = await fetch(`${request.nextUrl.origin}/api/auth/me`, {
+        headers: {
+          cookie: cookieHeader,
+        },
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        userId = user.id;
+        userRole = user.role;
+      }
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const eventId = searchParams.get("id");
+
+    if (!eventId) {
+      return NextResponse.json(
+        { error: "Event ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const body = await request.json();
+    const {
+      title,
+      description,
+      imageUrl,
+      date,
+      showtimes,
+      location,
+      price,
+      category,
+    } = body;
+
+    if (!title || !description || !location || !price || !category) {
+      return NextResponse.json(
+        { error: "All fields are required" },
+        { status: 400 },
+      );
+    }
+
+    const categoryUpper = category.toUpperCase();
+    if (categoryUpper !== "MOVIE" && categoryUpper !== "CONCERT") {
+      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+    }
+
+    // For admin users, allow access to any event
+    const whereClause =
+      userRole === "ADMIN"
+        ? { id: eventId }
+        : { id: eventId, vendorId: userId };
+
+    const existingEvent = await prisma.event.findUnique({
+      where: whereClause,
+    });
+
+    if (!existingEvent) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    // Validate date and showtimes based on category
+    if (categoryUpper === "MOVIE") {
+      if (!showtimes || !Array.isArray(showtimes) || showtimes.length === 0) {
+        return NextResponse.json(
+          { error: "Showtimes are required for movies" },
+          { status: 400 },
+        );
+      }
+
+      // Validate each showtime
+      for (const showtime of showtimes) {
+        if (isNaN(Date.parse(showtime)) || new Date(showtime) <= new Date()) {
+          return NextResponse.json(
+            { error: "Invalid showtime - must be in the future" },
+            { status: 400 },
+          );
+        }
+      }
+    } else if (categoryUpper === "CONCERT") {
+      if (!date || isNaN(Date.parse(date)) || new Date(date) <= new Date()) {
+        return NextResponse.json(
+          { error: "Valid future date is required for concerts" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (price <= 0) {
+      return NextResponse.json({ error: "Invalid price" }, { status: 400 });
+    }
+
+    const oldImageUrl = existingEvent.imageUrl;
+    const newImageUrl = imageUrl || null;
+
+    if (oldImageUrl && oldImageUrl !== newImageUrl) {
+      try {
+        await deleteImageFromS3(oldImageUrl);
+        console.log(
+          "Successfully deleted old event image from S3:",
+          oldImageUrl,
+        );
+      } catch (error) {
+        console.error("Failed to delete old event image from S3:", error);
+      }
+    }
+
+    // Prepare event data based on category
+    let eventData: {
+      title: string;
+      description: string;
+      imageUrl?: string;
+      date: Date;
+      showtimes: Date[];
+      location: string;
+      price: number;
+      category: EventCategory;
+    };
+
+    if (categoryUpper === "MOVIE") {
+      eventData = {
+        title,
+        description,
+        imageUrl: newImageUrl,
+        date: new Date(showtimes[0]), // Set the main date to the first showtime
+        showtimes: showtimes.map((showtime: string) => new Date(showtime)),
+        location,
+        price: parseFloat(price),
+        category: EventCategory.MOVIE,
+      };
+    } else {
+      eventData = {
+        title,
+        description,
+        imageUrl: newImageUrl,
+        date: new Date(date),
+        showtimes: [], // Empty array for concerts
+        location,
+        price: parseFloat(price),
+        category: EventCategory.CONCERT,
+      };
+    }
+
+    const updatedEvent = await prisma.event.update({
+      where: {
+        id: eventId,
+      },
+      data: eventData,
+      include: {
+        vendor: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      event: updatedEvent,
+    });
+  } catch (error) {
+    console.error("Error updating event:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

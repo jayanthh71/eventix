@@ -5,12 +5,35 @@ import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";
+import { EventCategory } from "@prisma/client";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-function EditEventContent() {
+type MovieForm = {
+  title: string;
+  description: string;
+  imageUrl: string;
+  location: string;
+  price: string;
+  category: "MOVIE";
+  date: string;
+  showtimes: string[];
+};
+type ConcertForm = {
+  title: string;
+  description: string;
+  imageUrl: string;
+  location: string;
+  price: string;
+  category: "CONCERT";
+  date: string;
+  time: string;
+};
+type FormState = MovieForm | ConcertForm;
+
+function AdminEditEvent() {
   const { user, isLoggedIn, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -28,22 +51,21 @@ function EditEventContent() {
   const [newlyUploadedImageUrl, setNewlyUploadedImageUrl] = useState("");
   const [wasSuccessfullySubmitted, setWasSuccessfullySubmitted] =
     useState(false);
+  const [currentShowtimeInput, setCurrentShowtimeInput] = useState("");
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     title: "",
     description: "",
     imageUrl: "",
-    date: "",
-    time: "",
     location: "",
     price: "",
+    category: EventCategory.MOVIE,
+    date: "",
+    showtimes: [],
   });
 
   useEffect(() => {
-    if (
-      !authLoading &&
-      (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN"))
-    ) {
+    if (!authLoading && (!isLoggedIn || user?.role !== "ADMIN")) {
       router.push("/");
       return;
     }
@@ -63,27 +85,40 @@ function EditEventContent() {
           const event = result.event;
           const eventDate = new Date(event.date);
 
-          if (isNaN(eventDate.getTime())) {
-            setError("Invalid event date format");
-            return;
-          }
+          if (event.category === EventCategory.MOVIE) {
+            const dateStr = eventDate.toISOString().split("T")[0];
+            const showtimes =
+              event.showtimes?.map((showtime: Date) => {
+                const showtimeDate = new Date(showtime);
+                return showtimeDate.toTimeString().slice(0, 5);
+              }) || [];
 
-          setFormData({
-            title: event.title || "",
-            description: event.description || "",
-            imageUrl: event.imageUrl || "",
-            date: eventDate.toISOString().split("T")[0],
-            time: eventDate.toTimeString().slice(0, 5),
-            location: event.location || "",
-            price: event.price?.toString() || "",
-          });
+            setFormData({
+              title: event.title || "",
+              description: event.description || "",
+              imageUrl: event.imageUrl || "",
+              location: event.location || "",
+              price: event.price?.toString() || "",
+              category: EventCategory.MOVIE,
+              date: dateStr,
+              showtimes: showtimes,
+            });
+          } else {
+            setFormData({
+              title: event.title || "",
+              description: event.description || "",
+              imageUrl: event.imageUrl || "",
+              location: event.location || "",
+              price: event.price?.toString() || "",
+              category: EventCategory.CONCERT,
+              date: eventDate.toISOString().split("T")[0],
+              time: eventDate.toTimeString().slice(0, 5),
+            });
+          }
 
           setOriginalImageUrl(event.imageUrl || "");
           setImageUploadError("");
           setImageJustUploaded(false);
-
-          console.log("Fetched event data:", event);
-          console.log("Set imageUrl:", event.imageUrl || "");
         } else {
           setError(result.error || "Failed to fetch event");
         }
@@ -100,42 +135,50 @@ function EditEventContent() {
     }
   }, [authLoading, isLoggedIn, user?.role, router, eventId]);
 
-  const cleanupNewlyUploadedImage = async () => {
-    if (
-      newlyUploadedImageUrl &&
-      newlyUploadedImageUrl !== originalImageUrl &&
-      !wasSuccessfullySubmitted
-    ) {
-      try {
-        const response = await fetch("/api/delete/event-image", {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ imageUrl: newlyUploadedImageUrl }),
-        });
-
-        if (response.ok) {
-          console.log(
-            "Successfully cleaned up newly uploaded image:",
-            newlyUploadedImageUrl,
-          );
-        } else {
-          console.warn(
-            "Could not clean up newly uploaded image:",
-            newlyUploadedImageUrl,
-          );
-        }
-      } catch (error) {
-        console.error("Failed to clean up newly uploaded image:", error);
-      }
-    }
-  };
-
-  const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const updateField = (
+    field: keyof MovieForm | keyof ConcertForm,
+    value: string | EventCategory,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }) as FormState);
     if (error) setError("");
     if (success) setSuccess("");
+    if (imageJustUploaded) setImageJustUploaded(false);
+  };
+
+  const removeShowtime = (idx: number) => {
+    if (formData.category !== "MOVIE") return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      const newShowtimes = prev.showtimes.filter((_, i) => i !== idx);
+      return {
+        ...prev,
+        showtimes: newShowtimes.length > 0 ? newShowtimes : [""],
+      };
+    });
+  };
+
+  const addShowtimeFromInput = () => {
+    if (formData.category !== "MOVIE") return;
+    const input = currentShowtimeInput.trim();
+    if (!input || !validateTime(input)) return;
+    if (formData.showtimes.includes(input)) return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      return {
+        ...prev,
+        showtimes: [...prev.showtimes, input],
+      };
+    });
+    setCurrentShowtimeInput("");
+  };
+
+  const handleShowtimeInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      addShowtimeFromInput();
+    }
   };
 
   const validateTime = (timeString: string): boolean => {
@@ -240,20 +283,6 @@ function EditEventContent() {
     return cleaned;
   };
 
-  const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const input = e.target as HTMLInputElement;
-    const { value, selectionStart } = input;
-
-    if (e.key === "Backspace" && selectionStart === 3 && value[2] === ":") {
-      e.preventDefault();
-      const newValue = value.slice(0, 2);
-      updateField("time", newValue);
-      setTimeout(() => {
-        input.setSelectionRange(2, 2);
-      }, 0);
-    }
-  };
-
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -279,9 +308,8 @@ function EditEventContent() {
         console.error("Image upload failed:", result.error);
         setImageUploadError(result.error || "Failed to upload image");
       }
-    } catch (error) {
-      console.error("Image upload error:", error);
-      setImageUploadError("An unexpected error occurred while uploading image");
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsUploadingImage(false);
       event.target.value = "";
@@ -329,8 +357,47 @@ function EditEventContent() {
     setIsSubmitting(true);
 
     try {
-      if (!validateTime(formData.time)) {
-        setError("Please enter a valid time in HH:MM format (24-hour)");
+      let payload;
+      if (formData.category === "MOVIE") {
+        if (!formData.date) {
+          setError("Please select a date for the movie");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const validShowtimes = formData.showtimes.filter(
+          (t) => t.trim() !== "",
+        );
+        if (validShowtimes.length === 0) {
+          setError("Please enter at least one showtime");
+          setIsSubmitting(false);
+          return;
+        }
+
+        for (const t of validShowtimes) {
+          if (!validateTime(t)) {
+            setError("Please enter valid time for all showtimes");
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
+        payload = {
+          ...formData,
+          showtimes: validShowtimes.map((t) => `${formData.date}T${t}`),
+        };
+      } else if (formData.category === "CONCERT") {
+        if (!formData.date || !validateTime(formData.time)) {
+          setError("Please enter a valid date and time");
+          setIsSubmitting(false);
+          return;
+        }
+        payload = {
+          ...formData,
+          date: `${formData.date}T${formData.time}`,
+        };
+      } else {
+        setError("Invalid form state");
         setIsSubmitting(false);
         return;
       }
@@ -341,53 +408,46 @@ function EditEventContent() {
         return;
       }
 
-      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-
-      if (eventDateTime <= new Date()) {
-        setError("Event date must be in the future");
-        setIsSubmitting(false);
-        return;
-      }
-
       const response = await fetch(`/api/events?id=${eventId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          imageUrl: formData.imageUrl || null,
-          date: eventDateTime.toISOString(),
-          location: formData.location,
-          price: parseFloat(formData.price),
-          category: "CONCERT",
-        }),
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-
       const result = await response.json();
 
       if (response.ok) {
         setSuccess("Event updated successfully!");
-
         setWasSuccessfullySubmitted(true);
         setNewlyUploadedImageUrl("");
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
-
+        queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/admin");
         }, 1500);
       } else {
         setError(result.error || "Failed to update event");
       }
-    } catch (error) {
-      console.error("Error updating event:", error);
+    } catch {
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCancel = async () => {
+    if (newlyUploadedImageUrl && !wasSuccessfullySubmitted) {
+      try {
+        await fetch("/api/delete/event-image", {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ imageUrl: newlyUploadedImageUrl }),
+        });
+      } catch {}
+    }
+    router.push("/admin");
   };
 
   const handleDelete = async () => {
@@ -432,14 +492,12 @@ function EditEventContent() {
 
       if (response.ok) {
         setSuccess("Event deleted successfully!");
-
         setWasSuccessfullySubmitted(true);
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
-
+        queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+        queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/admin");
         }, 1500);
       } else {
         setError(result.error || "Failed to delete event");
@@ -452,11 +510,6 @@ function EditEventContent() {
     }
   };
 
-  const handleCancel = async () => {
-    await cleanupNewlyUploadedImage();
-    router.push("/dashboard");
-  };
-
   if (authLoading || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -465,16 +518,16 @@ function EditEventContent() {
     );
   }
 
-  if (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN")) {
-    return null;
-  }
-
-  if (!eventId) {
+  if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <ErrorMessage message="The event ID was not provided." />
+        <ErrorMessage message={error} />
       </div>
     );
+  }
+
+  if (!isLoggedIn || user?.role !== "ADMIN") {
+    return null;
   }
 
   return (
@@ -482,7 +535,9 @@ function EditEventContent() {
       <div className="flex w-full max-w-2xl flex-col gap-8 p-12">
         <div className="font-anek flex flex-col items-center gap-4 text-white">
           <h1 className="text-3xl font-bold">Edit Event</h1>
-          <p className="text-center text-lg text-gray-300">Edit your event</p>
+          <p className="text-center text-lg text-gray-300">
+            Update the details for this event
+          </p>
         </div>
 
         <form
@@ -532,14 +587,21 @@ function EditEventContent() {
           <div className="space-y-6">
             <div>
               <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                Event Title *
+                {formData.category === EventCategory.MOVIE
+                  ? "Movie"
+                  : "Concert"}{" "}
+                Title *
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => updateField("title", e.target.value)}
                 className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                placeholder="Enter concert title"
+                placeholder={
+                  formData.category === EventCategory.MOVIE
+                    ? "Enter movie title"
+                    : "Enter concert title"
+                }
                 required
               />
             </div>
@@ -553,7 +615,11 @@ function EditEventContent() {
                 onChange={(e) => updateField("description", e.target.value)}
                 rows={4}
                 className="font-anek w-full resize-none rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                placeholder="Describe your concert event"
+                placeholder={
+                  formData.category === EventCategory.MOVIE
+                    ? "Describe the movie plot, cast, and details"
+                    : "Describe the concert, artists, and event details"
+                }
                 required
               />
             </div>
@@ -726,51 +792,145 @@ function EditEventContent() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                  Date *
-                </label>
-                <DatePicker
-                  value={formData.date}
-                  onDateChangeAction={(date) => updateField("date", date)}
-                  minDate={new Date().toISOString().split("T")[0]}
-                  required
-                  placeholder="Select event date"
-                />
-              </div>
-              <div>
-                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                  Time *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.time}
-                    onChange={(e) => {
-                      const formatted = formatTimeInput(e.target.value);
-                      updateField("time", formatted);
-                    }}
-                    onKeyDown={handleTimeKeyDown}
-                    className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
-                      formData.time && !validateTime(formData.time)
-                        ? "border-red-500/50"
-                        : "border-gray-600/50"
-                    }`}
-                    placeholder="HH:MM"
-                    pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                    maxLength={5}
-                    inputMode="numeric"
+            {formData.category === EventCategory.CONCERT ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                    Date *
+                  </label>
+                  <DatePicker
+                    value={formData.date}
+                    onDateChangeAction={(date) => updateField("date", date)}
+                    minDate={new Date().toISOString().split("T")[0]}
                     required
+                    placeholder="Select event date"
                   />
                 </div>
-                {formData.time && !validateTime(formData.time) && (
-                  <p className="font-anek mt-1 text-xs text-red-400">
-                    Please enter a valid time in HH:MM format
-                  </p>
+                <div>
+                  <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                    Time *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.time}
+                      onChange={(e) => {
+                        const formatted = formatTimeInput(e.target.value);
+                        updateField("time", formatted);
+                      }}
+                      maxLength={5}
+                      inputMode="numeric"
+                      className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
+                        formData.time && !validateTime(formData.time)
+                          ? "border-red-500/50"
+                          : "border-gray-600/50"
+                      }`}
+                      placeholder="HH:MM"
+                      pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+                      required
+                    />
+                  </div>
+                  {formData.time && !validateTime(formData.time) && (
+                    <p className="font-anek mt-1 text-xs text-red-400">
+                      Please enter a valid time in HH:MM format
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {formData.category === EventCategory.MOVIE ? (
+              <div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                      Date *
+                    </label>
+                    <DatePicker
+                      value={formData.date}
+                      onDateChangeAction={(date) => updateField("date", date)}
+                      minDate={new Date().toISOString().split("T")[0]}
+                      required
+                      placeholder="Select event date"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                      Showtimes *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={currentShowtimeInput}
+                        onChange={(e) => {
+                          const formatted = formatTimeInput(e.target.value);
+                          setCurrentShowtimeInput(formatted);
+                        }}
+                        onKeyDown={handleShowtimeInputKeyDown}
+                        maxLength={5}
+                        inputMode="numeric"
+                        className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
+                          currentShowtimeInput &&
+                          !validateTime(currentShowtimeInput)
+                            ? "border-red-500/50"
+                            : "border-gray-600/50"
+                        }`}
+                        placeholder="Enter time (HH:MM)"
+                      />
+                    </div>
+                    {currentShowtimeInput &&
+                      !validateTime(currentShowtimeInput) && (
+                        <p className="font-anek mt-1 text-xs text-red-400">
+                          Please enter a valid time in HH:MM format
+                        </p>
+                      )}
+                  </div>
+                </div>
+
+                {formData.showtimes.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {formData.showtimes.map((showtime, idx) => (
+                      <div
+                        key={idx}
+                        className="group flex items-center gap-1.5 rounded-lg bg-gray-700/80 px-2.5 py-1.5 text-sm text-white backdrop-blur-sm transition-all duration-200 hover:bg-gray-600/80"
+                      >
+                        <svg
+                          className="h-3.5 w-3.5 text-gray-400"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="font-anek text-xs font-medium">
+                          {showtime}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeShowtime(idx)}
+                          className="ml-0.5 rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-600/50 hover:text-gray-300"
+                        >
+                          <svg
+                            className="h-3 w-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
+            ) : null}
 
             <div>
               <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
@@ -905,7 +1065,7 @@ function EditEventContent() {
                   Updating...
                 </>
               ) : (
-                "Update Event"
+                `Update ${formData.category === EventCategory.MOVIE ? "Movie" : "Concert"}`
               )}
             </button>
           </div>
@@ -924,7 +1084,7 @@ export default function EditEvent() {
         </div>
       }
     >
-      <EditEventContent />
+      <AdminEditEvent />
     </Suspense>
   );
 }
