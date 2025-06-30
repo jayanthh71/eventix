@@ -74,7 +74,8 @@ export default function DatePicker({
 
   const handleDateSelect = (day: number) => {
     const selectedDate = new Date(year, month, day);
-    const formattedDate = selectedDate.toISOString().split("T")[0];
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const formattedDate = `${selectedDate.getFullYear()}-${pad(selectedDate.getMonth() + 1)}-${pad(selectedDate.getDate())}`;
 
     if (minDate && formattedDate < minDate) {
       return;
