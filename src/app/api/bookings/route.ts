@@ -30,7 +30,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { eventId, trainId, quantity, totalPrice, time, location } = body;
+    const {
+      eventId,
+      trainId,
+      quantity,
+      totalPrice,
+      time,
+      date,
+      location,
+      showtime,
+      seatIds,
+    } = body;
 
     if (!quantity || quantity <= 0) {
       return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
@@ -89,10 +99,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Validate time against showtimes
       if (event.category === "MOVIE" && time) {
         if (event.showtimes.length > 0) {
-          // Convert selected time to ISO string format to compare
           const timeDate = new Date(time);
           const matchedShowtime = event.showtimes.find((showtime) => {
             const showtimeDate = new Date(showtime);
@@ -117,6 +125,35 @@ export async function POST(request: NextRequest) {
           { error: "Time is required for movie bookings" },
           { status: 400 },
         );
+      }
+
+      // Validate seatIds for movies
+      if (seatIds && Array.isArray(seatIds) && seatIds.length > 0) {
+        if (seatIds.length !== quantity) {
+          return NextResponse.json(
+            { error: "Number of selected seats does not match quantity" },
+            { status: 400 },
+          );
+        }
+        const seats = await prisma.seat.findMany({
+          where: {
+            row: {
+              in: seatIds.map((seatId: string) => seatId.split("-")[0]),
+            },
+            number: {
+              in: seatIds.map((seatId: string) => Number(seatId.split("-")[1])),
+            },
+            eventId,
+            date,
+            location,
+          },
+        });
+        if (seats.length > 0) {
+          return NextResponse.json(
+            { error: "One or more selected seats are already booked" },
+            { status: 400 },
+          );
+        }
       }
     } else {
       const train = await prisma.train.findUnique({
@@ -164,6 +201,28 @@ export async function POST(request: NextRequest) {
           train: true,
         },
       });
+
+      if (eventId && seatIds && Array.isArray(seatIds) && seatIds.length > 0) {
+        const seatCreates = seatIds.map((seatId: string) => {
+          const [row, number] = seatId.split("-");
+          // Ensure row is always a letter
+          const rowLetter = /^[A-Z]$/.test(row)
+            ? row
+            : String.fromCharCode(64 + Number(row));
+          return tx.seat.create({
+            data: {
+              eventId,
+              date: new Date(date),
+              location,
+              showtime: new Date(showtime),
+              row: rowLetter,
+              number: Number(number),
+              bookingId: booking.id,
+            },
+          });
+        });
+        await Promise.all(seatCreates);
+      }
 
       await tx.user.update({
         where: { id: user.id },
@@ -301,6 +360,12 @@ export async function PATCH(request: NextRequest) {
           balance: {
             increment: booking.totalPrice,
           },
+        },
+      });
+
+      await tx.seat.deleteMany({
+        where: {
+          bookingId: bookingId,
         },
       });
 

@@ -207,6 +207,7 @@ export default function Profile() {
         setRemoveImageError(data.error || "Failed to remove image");
       }
     } catch (error) {
+      console.error("Image removal error:", error);
       setRemoveImageError("An unexpected error occurred while removing image");
     } finally {
       setIsRemovingImage(false);
@@ -246,7 +247,7 @@ export default function Profile() {
                   {user.imageUrl && (
                     <button
                       type="button"
-                      className="absolute top-2 right-2 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-red-700 disabled:opacity-50"
+                      className="absolute -top-1.5 -right-1.5 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-red-700 disabled:opacity-50"
                       onClick={handleRemoveProfileImage}
                       disabled={isRemovingImage}
                       title="Remove profile picture"
@@ -291,7 +292,7 @@ export default function Profile() {
                     </button>
                   )}
                   <label
-                    className="absolute right-2 bottom-2 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white shadow-lg shadow-purple-500/25 transition-all duration-200 hover:scale-110 hover:from-purple-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="absolute -right-1.5 -bottom-1.5 z-20 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white shadow-lg shadow-purple-500/25 transition-all duration-200 hover:scale-110 hover:from-purple-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     title={
                       isUploadingImage
                         ? "Uploading..."

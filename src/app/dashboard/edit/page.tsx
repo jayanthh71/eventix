@@ -252,22 +252,6 @@ function EditEventContent() {
     return cleaned;
   };
 
-  const validatePrice = (priceString: string): boolean => {
-    if (!priceString || priceString.trim() === "") return false;
-
-    if (
-      priceString.includes("-") ||
-      priceString.includes("+") ||
-      priceString.toLowerCase().includes("e") ||
-      priceString.includes(" ")
-    ) {
-      return false;
-    }
-
-    const price = parseFloat(priceString);
-    return !isNaN(price) && price >= 0 && price <= 999999 && isFinite(price);
-  };
-
   const formatPriceInput = (value: string): string => {
     let cleaned = value.replace(/[^\d.]/g, "");
 
@@ -310,8 +294,11 @@ function EditEventContent() {
 
     try {
       const imageUrl = await uploadEventImage(file);
-      setFormData((prev) => ({ ...prev, imageUrl }));
-      setNewlyUploadedImageUrl(imageUrl);
+      setFormData((prev) => ({
+        ...prev,
+        imageUrl: imageUrl.imageUrl || "",
+      }));
+      setNewlyUploadedImageUrl(imageUrl.imageUrl || "");
       setImageJustUploaded(true);
       console.log("Image uploaded successfully:", imageUrl);
     } catch (error) {
@@ -354,7 +341,17 @@ function EditEventContent() {
     setSuccess("");
 
     try {
-      let eventData: any = {
+      const eventData: {
+        title: string;
+        description: string;
+        imageUrl: string;
+        price: number;
+        category: string;
+        date?: string;
+        location?: string;
+        dateArr?: string[];
+        locationArr?: string[];
+      } = {
         title: formData.title,
         description: formData.description,
         imageUrl: formData.imageUrl,

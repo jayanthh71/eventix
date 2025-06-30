@@ -79,7 +79,9 @@ export default function Bookings() {
             location: booking.event.location,
             imageUrl: booking.event.imageUrl || undefined,
             category: booking.event.category as "MOVIE" | "CONCERT",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             locationArr: (booking.event as any).locationArr || [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             dateArr: (booking.event as any).dateArr || [],
           }
         : undefined,
@@ -295,6 +297,7 @@ export default function Bookings() {
                       {transactionHistory.map((transaction) => (
                         <TransactionCard
                           key={transaction.id}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           transaction={transaction as any}
                         />
                       ))}

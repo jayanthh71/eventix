@@ -255,4 +255,25 @@ export function useVendorStats(enabled: boolean = true) {
   });
 }
 
+export function useSeatsForEvent(
+  eventId: string | null,
+  date: string | null,
+  location: string | null,
+  showtime: string | null,
+) {
+  return useQuery({
+    queryKey: ["seats", eventId, date, location, showtime],
+    queryFn: async () => {
+      if (!eventId || !date || !location || !showtime) return [];
+      const params = new URLSearchParams({ eventId, date, location, showtime });
+      const res = await fetch(`/api/events/seats?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch seats");
+      const data = await res.json();
+      return data.seats;
+    },
+    enabled: !!eventId && !!date && !!location && !!showtime,
+    staleTime: 2 * 60 * 1000,
+  });
+}
+
 export { type VendorStats };

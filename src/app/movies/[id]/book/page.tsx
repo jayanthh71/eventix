@@ -2,10 +2,11 @@
 
 import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
+import SeatGrid, { BookedSeat } from "@/components/ui/SeatGrid";
 import StripePaymentForm from "@/components/ui/StripePaymentForm";
 import { downloadTicket } from "@/lib/events/generateTicket";
 import useAuth from "@/lib/hooks/useAuth";
-import { useMovieById } from "@/lib/hooks/useData";
+import { useMovieById, useSeatsForEvent } from "@/lib/hooks/useData";
 import { Booking } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,6 +33,18 @@ export default function MovieBooking({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+
+  const {
+    data: seatData,
+    isLoading: seatsLoading,
+    error: seatsError,
+  } = useSeatsForEvent(
+    movie?.id ?? null,
+    selectedDate,
+    selectedLocation,
+    selectedShowtime,
+  );
 
   useEffect(() => {
     const dateParam = searchParams.get("date");
@@ -66,6 +79,15 @@ export default function MovieBooking({
     return date.toISOString();
   };
 
+  const handleSelectSeat = (seatId: string) => {
+    if (!seatData) return;
+    if (selectedSeats.includes(seatId)) {
+      setSelectedSeats(selectedSeats.filter((id) => id !== seatId));
+    } else if (selectedSeats.length < seats) {
+      setSelectedSeats([...selectedSeats, seatId]);
+    }
+  };
+
   const handleBooking = async () => {
     if (
       !movie ||
@@ -91,7 +113,10 @@ export default function MovieBooking({
           quantity: seats,
           totalPrice,
           time: getBookingTime(),
+          date: selectedDate,
           location: selectedLocation,
+          showtime: selectedShowtime,
+          seatIds: selectedSeats,
         }),
       });
 
@@ -651,6 +676,28 @@ export default function MovieBooking({
                 })}
               </div>
             </div>
+
+            {selectedDate &&
+              selectedLocation &&
+              selectedShowtime &&
+              (seatsLoading ? (
+                <div className="py-8 text-center text-gray-400">
+                  Loading seats...
+                </div>
+              ) : seatsError ? (
+                <div className="py-8 text-center text-red-400">
+                  Failed to load seats.
+                </div>
+              ) : seatData && seatData.length >= 0 ? (
+                <div className="mb-8">
+                  <SeatGrid
+                    bookedSeats={seatData as BookedSeat[]}
+                    seatLimit={seats}
+                    selectedSeats={selectedSeats}
+                    onSelect={handleSelectSeat}
+                  />
+                </div>
+              ) : null)}
 
             <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-6 backdrop-blur-sm">
               <h3 className="font-anek mb-6 text-xl font-bold text-white">

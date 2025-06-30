@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Seat" ALTER COLUMN "row" SET DATA TYPE TEXT;

@@ -82,6 +82,7 @@ model Event {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  Seat      Seat[]
 }
 
 model Train {
@@ -112,6 +113,22 @@ enum PaymentMethod {
   STRIPE
 }
 
+model Seat {
+  id       String   @id @default(cuid())
+  Event    Event    @relation(fields: [eventId], references: [id])
+  eventId  String
+  date     DateTime
+  location String
+  showtime DateTime
+  row      String
+  number   Int
+
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId String
+
+  @@unique([eventId, date, location, showtime, row, number])
+}
+
 model Booking {
   id         String        @id @default(cuid())
   userId     String
@@ -129,6 +146,8 @@ model Booking {
   user  User   @relation(fields: [userId], references: [id])
   event Event? @relation(fields: [eventId], references: [id])
   train Train? @relation(fields: [trainId], references: [id])
+
+  seats Seat[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
