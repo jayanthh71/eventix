@@ -38,9 +38,17 @@ export async function POST(request: NextRequest) {
       location,
       price,
       category,
+      dateArr,
+      locationArr,
     } = body;
 
-    if (!title || !description || !location || !price || !category) {
+    if (
+      !title ||
+      !description ||
+      !(location || locationArr) ||
+      !price ||
+      !category
+    ) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 },
@@ -54,18 +62,25 @@ export async function POST(request: NextRequest) {
 
     // Validate date and showtimes based on category
     if (categoryUpper === "MOVIE") {
-      if (!showtimes || !Array.isArray(showtimes) || showtimes.length === 0) {
+      if (
+        !dateArr ||
+        !Array.isArray(dateArr) ||
+        dateArr.length === 0 ||
+        !locationArr ||
+        !Array.isArray(locationArr) ||
+        locationArr.length === 0
+      ) {
         return NextResponse.json(
-          { error: "Showtimes are required for movies" },
+          { error: "Dates and locations are required for movies" },
           { status: 400 },
         );
       }
 
-      // Validate each showtime
-      for (const showtime of showtimes) {
-        if (isNaN(Date.parse(showtime)) || new Date(showtime) <= new Date()) {
+      // Validate each date
+      for (const d of dateArr) {
+        if (isNaN(Date.parse(d)) || new Date(d) <= new Date()) {
           return NextResponse.json(
-            { error: "Invalid showtime - must be in the future" },
+            { error: "Invalid date in dateArr - must be in the future" },
             { status: 400 },
           );
         }
@@ -77,6 +92,13 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
+
+      if (!location) {
+        return NextResponse.json(
+          { error: "Location is required for concerts" },
+          { status: 400 },
+        );
+      }
     }
 
     if (price <= 0) {
@@ -84,29 +106,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare event data based on category
-    let eventData: {
-      title: string;
-      description: string;
-      imageUrl?: string;
-      date: Date;
-      showtimes: Date[];
-      location: string;
-      price: number;
-      category: EventCategory;
-      vendorId: string;
-    };
+    let eventData;
 
     if (categoryUpper === "MOVIE") {
       eventData = {
         title,
         description,
         imageUrl,
-        date: new Date(showtimes[0]), // Set the main date to the first showtime
-        showtimes: showtimes.map((showtime: string) => new Date(showtime)),
-        location,
+        date: new Date(dateArr[0]), // Set the main date to the first date
+        dateArr: dateArr.map((d: string) => new Date(d)),
+        locationArr: locationArr,
+        location: locationArr[0], // Set main location to the first location
         price: parseFloat(price),
         category: EventCategory.MOVIE,
         vendorId: userId,
+        showtimes: showtimes ? showtimes.map((s: string) => new Date(s)) : [],
       };
     } else {
       eventData = {
@@ -114,11 +128,13 @@ export async function POST(request: NextRequest) {
         description,
         imageUrl,
         date: new Date(date),
-        showtimes: [], // Empty array for concerts
-        location,
+        location, // Ensure location is set for concerts
         price: parseFloat(price),
         category: EventCategory.CONCERT,
         vendorId: userId,
+        showtimes: showtimes ? showtimes.map((s: string) => new Date(s)) : [],
+        dateArr: [], // Empty array for concerts
+        locationArr: [], // Empty array for concerts
       };
     }
 
@@ -549,6 +565,16 @@ export async function DELETE(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Event ID not provided" },
+        { status: 400 },
+      );
+    }
+
     const cookieHeader = request.headers.get("cookie");
     let userId: string | null = null;
     let userRole: string | null = null;
@@ -574,13 +600,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const eventId = searchParams.get("id");
+    const existingEvent = await prisma.event.findUnique({ where: { id } });
+    if (!existingEvent) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
 
-    if (!eventId) {
+    if (userRole !== "ADMIN" && existingEvent.vendorId !== userId) {
       return NextResponse.json(
-        { error: "Event ID is required" },
-        { status: 400 },
+        { error: "You are not authorized to edit this event" },
+        { status: 403 },
       );
     }
 
@@ -590,124 +618,100 @@ export async function PUT(request: NextRequest) {
       description,
       imageUrl,
       date,
-      showtimes,
       location,
       price,
       category,
+      dates,
+      locations,
+      showtimes,
     } = body;
 
-    if (!title || !description || !location || !price || !category) {
+    if (!title || !description || !price || !category) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "Required fields are missing" },
         { status: 400 },
       );
     }
 
+    let eventData;
     const categoryUpper = category.toUpperCase();
-    if (categoryUpper !== "MOVIE" && categoryUpper !== "CONCERT") {
-      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
-    }
 
-    // For admin users, allow access to any event
-    const whereClause =
-      userRole === "ADMIN"
-        ? { id: eventId }
-        : { id: eventId, vendorId: userId };
-
-    const existingEvent = await prisma.event.findUnique({
-      where: whereClause,
-    });
-
-    if (!existingEvent) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
-
-    // Validate date and showtimes based on category
     if (categoryUpper === "MOVIE") {
-      if (!showtimes || !Array.isArray(showtimes) || showtimes.length === 0) {
+      // Check if dates and locations arrays exist
+      if (!dates || !Array.isArray(dates) || dates.length === 0) {
         return NextResponse.json(
-          { error: "Showtimes are required for movies" },
+          { error: "At least one date is required for movies" },
           { status: 400 },
         );
       }
 
-      // Validate each showtime
-      for (const showtime of showtimes) {
-        if (isNaN(Date.parse(showtime)) || new Date(showtime) <= new Date()) {
+      if (!locations || !Array.isArray(locations) || locations.length === 0) {
+        return NextResponse.json(
+          { error: "At least one location is required for movies" },
+          { status: 400 },
+        );
+      }
+
+      // Validate dates
+      for (const d of dates) {
+        if (isNaN(Date.parse(d))) {
           return NextResponse.json(
-            { error: "Invalid showtime - must be in the future" },
+            { error: "Invalid date format in dates array" },
             { status: 400 },
           );
         }
       }
-    } else if (categoryUpper === "CONCERT") {
-      if (!date || isNaN(Date.parse(date)) || new Date(date) <= new Date()) {
+
+      // Process showtimes
+      let processedShowtimes: Date[] = [];
+      if (Array.isArray(showtimes) && showtimes.length > 0) {
+        processedShowtimes = showtimes.map((s: string) => new Date(s));
+      }
+
+      eventData = {
+        title,
+        description,
+        imageUrl,
+        date: new Date(dates[0]), // Set the main date to the first date
+        dateArr: dates.map((d: string) => new Date(d)),
+        locationArr: locations,
+        location: locations[0], // Set main location to the first location
+        price: parseFloat(price),
+        category: EventCategory.MOVIE,
+        showtimes: processedShowtimes,
+      };
+    } else {
+      // For concert
+      if (!date || isNaN(Date.parse(date))) {
         return NextResponse.json(
-          { error: "Valid future date is required for concerts" },
+          { error: "Valid date is required for concerts" },
           { status: 400 },
         );
       }
-    }
 
-    if (price <= 0) {
-      return NextResponse.json({ error: "Invalid price" }, { status: 400 });
-    }
-
-    const oldImageUrl = existingEvent.imageUrl;
-    const newImageUrl = imageUrl || null;
-
-    if (oldImageUrl && oldImageUrl !== newImageUrl) {
-      try {
-        await deleteImageFromS3(oldImageUrl);
-        console.log(
-          "Successfully deleted old event image from S3:",
-          oldImageUrl,
+      if (!location) {
+        return NextResponse.json(
+          { error: "Location is required for concerts" },
+          { status: 400 },
         );
-      } catch (error) {
-        console.error("Failed to delete old event image from S3:", error);
       }
-    }
 
-    // Prepare event data based on category
-    let eventData: {
-      title: string;
-      description: string;
-      imageUrl?: string;
-      date: Date;
-      showtimes: Date[];
-      location: string;
-      price: number;
-      category: EventCategory;
-    };
-
-    if (categoryUpper === "MOVIE") {
       eventData = {
         title,
         description,
-        imageUrl: newImageUrl,
-        date: new Date(showtimes[0]), // Set the main date to the first showtime
-        showtimes: showtimes.map((showtime: string) => new Date(showtime)),
-        location,
-        price: parseFloat(price),
-        category: EventCategory.MOVIE,
-      };
-    } else {
-      eventData = {
-        title,
-        description,
-        imageUrl: newImageUrl,
+        imageUrl,
         date: new Date(date),
-        showtimes: [], // Empty array for concerts
         location,
         price: parseFloat(price),
         category: EventCategory.CONCERT,
+        showtimes: [], // Concerts don't use showtimes
+        dateArr: [], // Empty array for concerts
+        locationArr: [], // Empty array for concerts
       };
     }
 
     const updatedEvent = await prisma.event.update({
-      where: {
-        id: eventId,
-      },
+      where: { id },
       data: eventData,
       include: {
         vendor: {

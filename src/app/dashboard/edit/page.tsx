@@ -1,7 +1,6 @@
 "use client";
 
 import DatePicker from "@/components/ui/DatePicker";
-import ErrorMessage from "@/components/ui/ErrorMessage";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import useAuth from "@/lib/hooks/useAuth";
 import { uploadEventImage } from "@/lib/uploadImage";
@@ -37,6 +36,9 @@ function EditEventContent() {
     time: "",
     location: "",
     price: "",
+    category: "CONCERT",
+    dateArr: [] as { date: string; time: string }[],
+    locationArr: [] as string[],
   });
 
   useEffect(() => {
@@ -61,22 +63,40 @@ function EditEventContent() {
 
         if (response.ok) {
           const event = result.event;
-          const eventDate = new Date(event.date);
-
-          if (isNaN(eventDate.getTime())) {
-            setError("Invalid event date format");
-            return;
-          }
-
-          setFormData({
+          setFormData((prev) => ({
+            ...prev,
             title: event.title || "",
             description: event.description || "",
             imageUrl: event.imageUrl || "",
-            date: eventDate.toISOString().split("T")[0],
-            time: eventDate.toTimeString().slice(0, 5),
-            location: event.location || "",
             price: event.price?.toString() || "",
-          });
+            category: event.category,
+          }));
+
+          if (event.category === "CONCERT") {
+            const eventDate = new Date(event.date);
+            if (!isNaN(eventDate.getTime())) {
+              setFormData((prev) => ({
+                ...prev,
+                date: eventDate.toISOString().split("T")[0],
+                time: eventDate.toTimeString().slice(0, 5),
+                location: event.location || "",
+              }));
+            } else {
+              setError("Invalid event date format");
+            }
+          } else if (event.category === "MOVIE") {
+            setFormData((prev) => ({
+              ...prev,
+              dateArr: event.dateArr.map((d: string) => {
+                const date = new Date(d);
+                return {
+                  date: date.toISOString().split("T")[0],
+                  time: date.toTimeString().slice(0, 5),
+                };
+              }),
+              locationArr: event.locationArr || [],
+            }));
+          }
 
           setOriginalImageUrl(event.imageUrl || "");
           setImageUploadError("");
@@ -132,10 +152,50 @@ function EditEventContent() {
     }
   };
 
-  const updateField = (field: keyof typeof formData, value: string) => {
+  const updateField = (
+    field: keyof typeof formData,
+    value: string | { date: string; time: string }[] | string[],
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (error) setError("");
     if (success) setSuccess("");
+    if (imageJustUploaded) setImageJustUploaded(false);
+  };
+
+  const handleAddDate = () => {
+    updateField("dateArr", [...formData.dateArr, { date: "", time: "" }]);
+  };
+
+  const handleDateChange = (
+    index: number,
+    field: "date" | "time",
+    value: string,
+  ) => {
+    const newDateArr = [...formData.dateArr];
+    newDateArr[index][field] = value;
+    updateField("dateArr", newDateArr);
+  };
+
+  const handleRemoveDate = (index: number) => {
+    const newDateArr = [...formData.dateArr];
+    newDateArr.splice(index, 1);
+    updateField("dateArr", newDateArr);
+  };
+
+  const handleAddLocation = () => {
+    updateField("locationArr", [...formData.locationArr, ""]);
+  };
+
+  const handleLocationChange = (index: number, value: string) => {
+    const newLocationArr = [...formData.locationArr];
+    newLocationArr[index] = value;
+    updateField("locationArr", newLocationArr);
+  };
+
+  const handleRemoveLocation = (index: number) => {
+    const newLocationArr = [...formData.locationArr];
+    newLocationArr.splice(index, 1);
+    updateField("locationArr", newLocationArr);
   };
 
   const validateTime = (timeString: string): boolean => {
@@ -220,37 +280,22 @@ function EditEventContent() {
       cleaned = parts[0] + "." + parts.slice(1).join("");
     }
 
-    const finalParts = cleaned.split(".");
-    if (finalParts.length === 2 && finalParts[1].length > 2) {
-      cleaned = finalParts[0] + "." + finalParts[1].slice(0, 2);
-    }
-
-    const beforeDecimal = cleaned.split(".")[0];
-    if (beforeDecimal.length > 6) {
-      const afterDecimal = cleaned.includes(".")
-        ? "." + cleaned.split(".")[1]
-        : "";
-      cleaned = beforeDecimal.slice(0, 6) + afterDecimal;
-    }
-
-    if (cleaned === ".") {
-      cleaned = "";
+    if (parts.length === 2 && parts[1].length > 2) {
+      cleaned = parts[0] + "." + parts[1].slice(0, 2);
     }
 
     return cleaned;
   };
 
   const handleTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const input = e.target as HTMLInputElement;
-    const { value, selectionStart } = input;
-
-    if (e.key === "Backspace" && selectionStart === 3 && value[2] === ":") {
+    if (
+      e.key === "-" ||
+      e.key === "+" ||
+      e.key === "e" ||
+      e.key === "E" ||
+      e.key === " "
+    ) {
       e.preventDefault();
-      const newValue = value.slice(0, 2);
-      updateField("time", newValue);
-      setTimeout(() => {
-        input.setSelectionRange(2, 2);
-      }, 0);
     }
   };
 
@@ -260,31 +305,20 @@ function EditEventContent() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setImageUploadError("");
     setIsUploadingImage(true);
+    setImageUploadError("");
 
     try {
-      const result = await uploadEventImage(file);
-
-      if (result.success && result.imageUrl) {
-        console.log("Image upload successful, URL:", result.imageUrl);
-        setFormData((prev) => ({ ...prev, imageUrl: result.imageUrl! }));
-
-        if (result.imageUrl !== originalImageUrl) {
-          setNewlyUploadedImageUrl(result.imageUrl);
-        }
-
-        setImageJustUploaded(true);
-      } else {
-        console.error("Image upload failed:", result.error);
-        setImageUploadError(result.error || "Failed to upload image");
-      }
+      const imageUrl = await uploadEventImage(file);
+      setFormData((prev) => ({ ...prev, imageUrl }));
+      setNewlyUploadedImageUrl(imageUrl);
+      setImageJustUploaded(true);
+      console.log("Image uploaded successfully:", imageUrl);
     } catch (error) {
-      console.error("Image upload error:", error);
-      setImageUploadError("An unexpected error occurred while uploading image");
+      console.error("Failed to upload image:", error);
+      setImageUploadError("Failed to upload image. Please try again.");
     } finally {
       setIsUploadingImage(false);
-      event.target.value = "";
     }
   };
 
@@ -301,129 +335,107 @@ function EditEventContent() {
       });
 
       if (response.ok) {
-        console.log("Successfully deleted image from S3:", formData.imageUrl);
+        setFormData((prev) => ({ ...prev, imageUrl: "" }));
+        setNewlyUploadedImageUrl("");
+        setImageJustUploaded(false);
+        console.log("Image removed successfully");
       } else {
-        const errorData = await response.json();
-        console.warn(
-          "Could not delete image from S3:",
-          errorData.error || "Unknown error",
-        );
+        console.warn("Could not remove image");
       }
     } catch (error) {
-      console.error("Failed to delete image from S3:", error);
+      console.error("Failed to remove image:", error);
     }
-
-    setFormData((prev) => ({ ...prev, imageUrl: "" }));
-
-    if (formData.imageUrl === newlyUploadedImageUrl) {
-      setNewlyUploadedImageUrl("");
-    }
-
-    setImageJustUploaded(false);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSubmitting(true);
     setError("");
     setSuccess("");
-    setIsSubmitting(true);
 
     try {
-      if (!validateTime(formData.time)) {
-        setError("Please enter a valid time in HH:MM format (24-hour)");
-        setIsSubmitting(false);
-        return;
-      }
+      let eventData: any = {
+        title: formData.title,
+        description: formData.description,
+        imageUrl: formData.imageUrl,
+        price: parseFloat(formData.price),
+        category: formData.category,
+      };
 
-      if (!validatePrice(formData.price)) {
-        setError("Please enter a valid price (0.00 - 999999.99)");
-        setIsSubmitting(false);
-        return;
-      }
+      if (formData.category === "CONCERT") {
+        if (!formData.date || !formData.time || !formData.location) {
+          setError("Please fill in all required fields for concert events");
+          return;
+        }
 
-      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
+        const dateTime = new Date(`${formData.date}T${formData.time}`);
+        eventData.date = dateTime.toISOString();
+        eventData.location = formData.location;
+      } else if (formData.category === "MOVIE") {
+        if (
+          formData.dateArr.length === 0 ||
+          formData.locationArr.length === 0
+        ) {
+          setError(
+            "Please add at least one date/time and location for movie events",
+          );
+          return;
+        }
 
-      if (eventDateTime <= new Date()) {
-        setError("Event date must be in the future");
-        setIsSubmitting(false);
-        return;
+        const dateArr = formData.dateArr.map((item) => {
+          if (!item.date || !item.time) {
+            throw new Error("Please fill in all date and time fields");
+          }
+          return new Date(`${item.date}T${item.time}`).toISOString();
+        });
+
+        eventData.dateArr = dateArr;
+        eventData.locationArr = formData.locationArr;
       }
 
       const response = await fetch(`/api/events?id=${eventId}`, {
-        method: "PATCH",
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          imageUrl: formData.imageUrl || null,
-          date: eventDateTime.toISOString(),
-          location: formData.location,
-          price: parseFloat(formData.price),
-          category: "CONCERT",
-        }),
+        body: JSON.stringify(eventData),
       });
 
       const result = await response.json();
 
       if (response.ok) {
         setSuccess("Event updated successfully!");
-
         setWasSuccessfullySubmitted(true);
-        setNewlyUploadedImageUrl("");
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
 
         setTimeout(() => {
           router.push("/dashboard");
-        }, 1500);
+        }, 2000);
       } else {
         setError(result.error || "Failed to update event");
       }
     } catch (error) {
       console.error("Error updating event:", error);
-      setError("An unexpected error occurred. Please try again.");
+      setError("Failed to update event. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!eventId) return;
+    if (
+      !confirm(
+        "Are you sure you want to delete this event? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
 
+    setIsDeleting(true);
     setError("");
     setSuccess("");
-    setIsDeleting(true);
 
     try {
-      if (formData.imageUrl && formData.imageUrl !== originalImageUrl) {
-        try {
-          const response = await fetch("/api/delete/event-image", {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ imageUrl: formData.imageUrl }),
-          });
-
-          if (response.ok) {
-            console.log(
-              "Successfully cleaned up newly uploaded image:",
-              formData.imageUrl,
-            );
-          } else {
-            console.warn(
-              "Could not clean up newly uploaded image:",
-              formData.imageUrl,
-            );
-          }
-        } catch (error) {
-          console.error("Failed to clean up newly uploaded image:", error);
-        }
-      }
-
       const response = await fetch(`/api/events?id=${eventId}`, {
         method: "DELETE",
       });
@@ -432,21 +444,17 @@ function EditEventContent() {
 
       if (response.ok) {
         setSuccess("Event deleted successfully!");
-
-        setWasSuccessfullySubmitted(true);
-
-        queryClient.invalidateQueries({ queryKey: ["vendor-events"] });
-        queryClient.invalidateQueries({ queryKey: ["vendor-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["events"] });
 
         setTimeout(() => {
           router.push("/dashboard");
-        }, 1500);
+        }, 2000);
       } else {
         setError(result.error || "Failed to delete event");
       }
     } catch (error) {
       console.error("Error deleting event:", error);
-      setError("An unexpected error occurred. Please try again.");
+      setError("Failed to delete event. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -457,22 +465,10 @@ function EditEventContent() {
     router.push("/dashboard");
   };
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoadingIndicator />
-      </div>
-    );
-  }
-
-  if (!isLoggedIn || (user?.role !== "VENDOR" && user?.role !== "ADMIN")) {
-    return null;
-  }
-
-  if (!eventId) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <ErrorMessage message="The event ID was not provided." />
       </div>
     );
   }
@@ -557,6 +553,194 @@ function EditEventContent() {
                 required
               />
             </div>
+
+            <div>
+              <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                Event Category
+              </label>
+              <div className="mt-2 flex items-center space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    className="form-radio"
+                    name="category"
+                    value="CONCERT"
+                    checked={formData.category === "CONCERT"}
+                    onChange={(e) => updateField("category", e.target.value)}
+                  />
+                  <span className="ml-2">Concert</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    className="form-radio"
+                    name="category"
+                    value="MOVIE"
+                    checked={formData.category === "MOVIE"}
+                    onChange={(e) => updateField("category", e.target.value)}
+                  />
+                  <span className="ml-2">Movie</span>
+                </label>
+              </div>
+            </div>
+
+            {formData.category === "CONCERT" && (
+              <>
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="date"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Date
+                    </label>
+                    <DatePicker
+                      value={formData.date}
+                      onDateChangeAction={(date: string) =>
+                        updateField("date", date)
+                      }
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Selected date: {formData.date}
+                    </p>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="time"
+                      className="block text-sm font-medium text-gray-300"
+                    >
+                      Time *
+                    </label>
+                    <input
+                      type="text"
+                      id="time"
+                      value={formData.time}
+                      onChange={(e) =>
+                        updateField("time", formatTimeInput(e.target.value))
+                      }
+                      onKeyDown={handleTimeKeyDown}
+                      placeholder="HH:MM"
+                      className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
+                        formData.time && !validateTime(formData.time)
+                          ? "border-red-500/50"
+                          : "border-gray-600/50"
+                      }`}
+                      pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
+                      maxLength={5}
+                      inputMode="numeric"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="location"
+                    className="block text-sm font-medium text-gray-300"
+                  >
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => updateField("location", e.target.value)}
+                    className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                    placeholder="Enter venue location"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            {formData.category === "MOVIE" && (
+              <>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Dates and Times
+                  </h3>
+                  {formData.dateArr.map((item, index) => (
+                    <div key={index} className="mt-4 flex items-center gap-4">
+                      <div className="flex-1">
+                        <DatePicker
+                          value={item.date}
+                          onDateChangeAction={(date: string) =>
+                            handleDateChange(index, "date", date)
+                          }
+                        />
+                        <p className="mt-1 text-sm text-gray-500">
+                          Selected date: {item.date}
+                        </p>
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          value={item.time}
+                          onChange={(e) =>
+                            handleDateChange(
+                              index,
+                              "time",
+                              formatTimeInput(e.target.value),
+                            )
+                          }
+                          placeholder="HH:MM"
+                          className="block w-full rounded-md border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveDate(index)}
+                        className="rounded-md bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddDate}
+                    className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+                  >
+                    Add Date
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium text-gray-300">
+                    Locations
+                  </h3>
+                  {formData.locationArr.map((location, index) => (
+                    <div key={index} className="mt-4 flex items-center gap-4">
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) =>
+                          handleLocationChange(index, e.target.value)
+                        }
+                        placeholder="e.g. Cinema Hall 1"
+                        className="block w-full rounded-md border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveLocation(index)}
+                        className="rounded-md bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={handleAddLocation}
+                    className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+                  >
+                    Add Location
+                  </button>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
@@ -726,77 +910,20 @@ function EditEventContent() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                  Date *
-                </label>
-                <DatePicker
-                  value={formData.date}
-                  onDateChangeAction={(date) => updateField("date", date)}
-                  minDate={new Date().toISOString().split("T")[0]}
-                  required
-                  placeholder="Select event date"
-                />
-              </div>
-              <div>
-                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                  Time *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.time}
-                    onChange={(e) => {
-                      const formatted = formatTimeInput(e.target.value);
-                      updateField("time", formatted);
-                    }}
-                    onKeyDown={handleTimeKeyDown}
-                    className={`font-anek w-full rounded-xl border bg-gray-700/50 px-4 py-3 pr-10 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none ${
-                      formData.time && !validateTime(formData.time)
-                        ? "border-red-500/50"
-                        : "border-gray-600/50"
-                    }`}
-                    placeholder="HH:MM"
-                    pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                    maxLength={5}
-                    inputMode="numeric"
-                    required
-                  />
-                </div>
-                {formData.time && !validateTime(formData.time) && (
-                  <p className="font-anek mt-1 text-xs text-red-400">
-                    Please enter a valid time in HH:MM format
-                  </p>
-                )}
-              </div>
-            </div>
-
             <div>
-              <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                Location *
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => updateField("location", e.target.value)}
-                className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                placeholder="Enter venue location"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+              <label
+                htmlFor="price"
+                className="block text-sm font-medium text-gray-300"
+              >
                 Ticket Price (₹) *
               </label>
               <input
-                type="number"
+                type="text"
+                id="price"
                 value={formData.price}
-                onChange={(e) => {
-                  const formatted = formatPriceInput(e.target.value);
-                  updateField("price", formatted);
-                }}
+                onChange={(e) =>
+                  updateField("price", formatPriceInput(e.target.value))
+                }
                 onKeyDown={(e) => {
                   if (
                     e.key === "-" ||
@@ -877,7 +1004,12 @@ function EditEventContent() {
             </div>
             <button
               type="submit"
-              disabled={isSubmitting || isDeleting}
+              disabled={
+                isSubmitting ||
+                isDeleting ||
+                isUploadingImage ||
+                imageJustUploaded
+              }
               className="font-anek flex cursor-pointer items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600/80 to-purple-600/80 px-8 py-3 font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-indigo-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
             >
               {isSubmitting ? (

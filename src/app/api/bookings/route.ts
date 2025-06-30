@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { eventId, trainId, quantity, totalPrice, time } = body;
+    const { eventId, trainId, quantity, totalPrice, time, location } = body;
 
     if (!quantity || quantity <= 0) {
       return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
@@ -61,7 +61,13 @@ export async function POST(request: NextRequest) {
     if (eventId) {
       const event = await prisma.event.findUnique({
         where: { id: eventId },
-        select: { price: true },
+        select: {
+          price: true,
+          category: true,
+          dateArr: true,
+          locationArr: true,
+          showtimes: true,
+        },
       });
 
       if (!event) {
@@ -69,6 +75,49 @@ export async function POST(request: NextRequest) {
       }
 
       itemPrice = event.price;
+
+      // Validate location for movies (should be one of the locations in locationArr)
+      if (event.category === "MOVIE" && location) {
+        if (
+          event.locationArr.length > 0 &&
+          !event.locationArr.includes(location)
+        ) {
+          return NextResponse.json(
+            { error: "Invalid location for this event" },
+            { status: 400 },
+          );
+        }
+      }
+
+      // Validate time against showtimes
+      if (event.category === "MOVIE" && time) {
+        if (event.showtimes.length > 0) {
+          // Convert selected time to ISO string format to compare
+          const timeDate = new Date(time);
+          const matchedShowtime = event.showtimes.find((showtime) => {
+            const showtimeDate = new Date(showtime);
+            return (
+              showtimeDate.getHours() === timeDate.getHours() &&
+              showtimeDate.getMinutes() === timeDate.getMinutes()
+            );
+          });
+
+          if (!matchedShowtime) {
+            return NextResponse.json(
+              {
+                error:
+                  "Invalid time for this event, must match an available showtime",
+              },
+              { status: 400 },
+            );
+          }
+        }
+      } else if (event.category === "MOVIE" && !time) {
+        return NextResponse.json(
+          { error: "Time is required for movie bookings" },
+          { status: 400 },
+        );
+      }
     } else {
       const train = await prisma.train.findUnique({
         where: { id: trainId },
@@ -106,6 +155,7 @@ export async function POST(request: NextRequest) {
           quantity,
           totalPrice,
           time: new Date(time),
+          location: location || null,
           status: "CONFIRMED",
           paymentMethod: "WALLET",
         },
