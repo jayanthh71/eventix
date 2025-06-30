@@ -6,6 +6,8 @@ type BookingWithIncludes = Booking & {
   train?: Train | null;
   paymentMethod?: PaymentMethod;
   paymentIntentId?: string | null;
+  location?: string;
+  time?: string;
 };
 
 export default function TransactionCard({
@@ -52,7 +54,9 @@ export default function TransactionCard({
               </h3>
               <p className="font-anek text-sm text-gray-400">
                 {transaction.event
-                  ? `${transaction.event.location} • ${new Date(transaction.event.date).toLocaleDateString()}`
+                  ? transaction.event.category === "MOVIE"
+                    ? `${transaction.location || "-"} • ${transaction.time ? new Date(transaction.time).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "-"} • ${transaction.time ? new Date(transaction.time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "-"}`
+                    : `${transaction.event.location} • ${transaction.event.date ? new Date(transaction.event.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "-"}`
                   : transaction.train
                     ? `${transaction.train.from} → ${transaction.train.to}`
                     : "Event details"}

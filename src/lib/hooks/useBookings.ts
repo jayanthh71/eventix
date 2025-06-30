@@ -64,6 +64,8 @@ export default function useBookings() {
   });
 
   const getBookingDate = (booking: BookingWithIncludes) => {
+    if (booking.event && booking.event.category === "MOVIE")
+      return new Date(booking.time);
     if (booking.event) return new Date(booking.event.date);
     if (booking.train) return new Date(booking.train.departure);
     return new Date(booking.time);

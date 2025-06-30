@@ -58,6 +58,14 @@ export default function MovieBooking({
     if (seats > 1) setSeats(seats - 1);
   };
 
+  const getBookingTime = () => {
+    if (!selectedDate || !selectedShowtime) return "";
+    const date = new Date(selectedDate);
+    const time = new Date(selectedShowtime);
+    date.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    return date.toISOString();
+  };
+
   const handleBooking = async () => {
     if (
       !movie ||
@@ -82,11 +90,7 @@ export default function MovieBooking({
           eventId: movie.id,
           quantity: seats,
           totalPrice,
-          time: new Date(
-            selectedDate +
-              "T" +
-              new Date(selectedShowtime).toTimeString().split(" ")[0],
-          ),
+          time: getBookingTime(),
           location: selectedLocation,
         }),
       });
@@ -878,7 +882,7 @@ export default function MovieBooking({
                   amount={totalPrice}
                   eventId={movie.id}
                   quantity={seats}
-                  time={selectedShowtime || ""}
+                  time={getBookingTime()}
                   onSuccess={handleStripeSuccess}
                   onError={handleStripeError}
                 />

@@ -98,7 +98,7 @@ export default function EventCard(event: Event) {
             </svg>
             <p className="text-sm font-medium text-gray-300">
               {isMovie
-                ? `${event.dateArr.length} Showtimes`
+                ? `${event.showtimes.length} Showtimes`
                 : new Date(event.date).toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
