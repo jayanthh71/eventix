@@ -34,6 +34,8 @@ export default function Profile() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState<string>("");
+  const [isRemovingImage, setIsRemovingImage] = useState(false);
+  const [removeImageError, setRemoveImageError] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -188,6 +190,29 @@ export default function Profile() {
     }
   };
 
+  const handleRemoveProfileImage = async () => {
+    if (!user.imageUrl) return;
+    setIsRemovingImage(true);
+    setRemoveImageError("");
+    try {
+      const response = await fetch("/api/delete/profile-image", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: user.imageUrl }),
+      });
+      if (response.ok) {
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+      } else {
+        const data = await response.json();
+        setRemoveImageError(data.error || "Failed to remove image");
+      }
+    } catch (error) {
+      setRemoveImageError("An unexpected error occurred while removing image");
+    } finally {
+      setIsRemovingImage(false);
+    }
+  };
+
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-gray-900">
       <div className="relative overflow-hidden">
@@ -195,7 +220,7 @@ export default function Profile() {
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-center">
-                <div className="relative">
+                <div className="relative flex items-center justify-center">
                   <div className="h-36 w-36 overflow-hidden rounded-full border-4 border-gray-600 bg-gradient-to-r from-gray-700 to-gray-600 lg:h-44 lg:w-44">
                     {user.imageUrl ? (
                       <Image
@@ -218,8 +243,55 @@ export default function Profile() {
                       </div>
                     )}
                   </div>
+                  {user.imageUrl && (
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-red-600 text-white shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-110 hover:bg-red-700 disabled:opacity-50"
+                      onClick={handleRemoveProfileImage}
+                      disabled={isRemovingImage}
+                      title="Remove profile picture"
+                      style={{ pointerEvents: "auto" }}
+                    >
+                      {isRemovingImage ? (
+                        <svg
+                          className="h-5 w-5 animate-spin"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  )}
                   <label
-                    className="absolute -right-1 -bottom-1 cursor-pointer rounded-full bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white shadow-lg shadow-purple-500/25 transition-all duration-200 hover:scale-110 hover:from-purple-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="absolute right-2 bottom-2 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-gradient-to-r from-purple-600 to-blue-600 p-2 text-white shadow-lg shadow-purple-500/25 transition-all duration-200 hover:scale-110 hover:from-purple-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     title={
                       isUploadingImage
                         ? "Uploading..."
@@ -235,10 +307,10 @@ export default function Profile() {
                       aria-label="Upload profile picture"
                     />
                     {isUploadingImage ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     ) : (
                       <svg
-                        className="h-4 w-4"
+                        className="h-5 w-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -279,6 +351,12 @@ export default function Profile() {
                       {imageUploadError}
                     </p>
                   </div>
+                </div>
+              )}
+
+              {removeImageError && (
+                <div className="mt-2 text-sm text-red-400">
+                  {removeImageError}
                 </div>
               )}
 
@@ -434,7 +512,7 @@ export default function Profile() {
                         </div>
                       </div>
                       <button
-                        className="font-anek rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-purple-700 hover:to-blue-700"
+                        className="font-anek cursor-pointer rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-purple-700 hover:to-blue-700"
                         onClick={async () => {
                           const res = await fetch("/api/auth/me", {
                             method: "PATCH",
