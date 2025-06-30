@@ -133,7 +133,8 @@ export default function Analytics() {
                         <div>
                           <div className="font-semibold">{event.title}</div>
                           <div className="text-gray-400">
-                            {new Date(event.date).toLocaleDateString()}
+                            {event.category === "CONCERT" &&
+                              new Date(event.date).toLocaleDateString()}
                           </div>
                         </div>
                       </td>
