@@ -20,6 +20,7 @@ interface EventWithCount extends Event {
 
 export default function EventManagement() {
   const [displayedCount, setDisplayedCount] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const {
     data: events = [],
@@ -36,8 +37,20 @@ export default function EventManagement() {
     },
   });
 
-  const displayedEvents = events.slice(0, displayedCount);
-  const hasMoreEvents = displayedCount < events.length;
+  const displayedEvents = events
+    .filter(
+      (event: EventWithCount) =>
+        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        event.description.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
+    .slice(0, displayedCount);
+  const hasMoreEvents =
+    displayedCount <
+    events.filter(
+      (event: EventWithCount) =>
+        event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        event.description.toLowerCase().includes(searchTerm.toLowerCase()),
+    ).length;
 
   const handleShowMore = () => {
     setDisplayedCount((prev) => prev + 10);
@@ -66,27 +79,51 @@ export default function EventManagement() {
   return (
     <div className="rounded-2xl border border-gray-700 bg-gray-800/50 p-8 shadow-2xl backdrop-blur-sm">
       <div className="font-anek space-y-8">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-2xl font-bold text-white">Event Management</h2>
-          <button
-            onClick={handleAddEvent}
-            className="font-anek flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600/80 to-purple-600/80 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-indigo-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search events..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-xl border border-gray-600/50 bg-gradient-to-r from-gray-800/80 to-gray-700/80 px-4 py-3 pl-12 font-medium text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 hover:from-gray-700/80 hover:to-gray-600/80 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none sm:w-64"
               />
-            </svg>
-            Add New Event
-          </button>
+              <svg
+                className="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-gray-400 transition-colors duration-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            <button
+              onClick={handleAddEvent}
+              className="font-anek flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600/80 to-purple-600/80 px-6 py-3 font-semibold text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-indigo-500/80 hover:to-purple-500/80 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+              Add New Event
+            </button>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-gray-600/50 bg-gray-800/50 backdrop-blur-sm">
@@ -159,6 +196,8 @@ export default function EventManagement() {
                     </td>
                     <td className="px-6 py-4 text-center text-base text-gray-300">
                       {new Date(event.date).toLocaleDateString()}
+                      {event.category === "MOVIE" &&
+                        ` + ${event.dateArr.length}`}
                     </td>
                     <td className="px-6 py-4 text-center text-base font-bold text-emerald-400">
                       ₹{event.price.toLocaleString()}

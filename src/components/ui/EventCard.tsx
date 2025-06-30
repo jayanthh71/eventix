@@ -56,7 +56,7 @@ export default function EventCard(event: Event) {
             />
           </svg>
           <p className="truncate text-sm font-medium text-gray-400">
-            {event.location}
+            {isMovie ? `${event.locationArr.length} Locations` : event.location}
           </p>
         </div>
 
@@ -74,11 +74,13 @@ export default function EventCard(event: Event) {
               />
             </svg>
             <p className="text-sm font-medium text-gray-300">
-              {new Date(event.date).toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
+              {isMovie
+                ? `Starting ${new Date(event.dateArr[0]).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`
+                : new Date(event.date).toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })}
             </p>
           </div>
 

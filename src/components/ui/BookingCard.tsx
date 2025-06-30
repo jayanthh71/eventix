@@ -14,10 +14,13 @@ export default function BookingCard({
     time: string;
     status: "PENDING" | "CONFIRMED" | "CANCELLED";
     createdAt: string;
+    location?: string;
     event?: {
       title: string;
       date: string;
       location: string;
+      locationArr: string[];
+      dateArr?: string[];
       imageUrl?: string;
       category: "MOVIE" | "CONCERT";
     };
@@ -82,6 +85,16 @@ export default function BookingCard({
     const trainDate = new Date(booking.train.departure);
     const now = new Date();
     return trainDate > now;
+  };
+
+  const isPastBooking = () => {
+    if (isEvent && booking.time) {
+      return new Date(booking.time) < new Date();
+    }
+    if (isTrain && booking.train?.departure) {
+      return new Date(booking.train.departure) < new Date();
+    }
+    return false;
   };
 
   const handleDownloadTicket = async () => {
@@ -232,7 +245,9 @@ export default function BookingCard({
                   />
                 </svg>
                 <p className="truncate text-sm font-medium text-gray-400">
-                  {booking.event!.location}
+                  {isMovie
+                    ? booking.location || "-"
+                    : booking.event?.location || "-"}
                 </p>
               </div>
               <div className="mb-3 flex items-center gap-2">
@@ -248,27 +263,25 @@ export default function BookingCard({
                   />
                 </svg>
                 <p className="text-sm font-medium text-gray-300">
-                  {formatDate(booking.event!.date)}
+                  {booking.time ? formatDate(booking.time) : "-"}
                 </p>
               </div>
-              {isMovie && (
-                <div className="mb-3 flex items-center gap-2">
-                  <svg
-                    className="h-4 w-4 text-orange-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <p className="text-sm font-medium text-gray-300">
-                    {formatTime(booking.time)}
-                  </p>
-                </div>
-              )}
+              <div className="mb-3 flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 text-orange-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <p className="text-sm font-medium text-gray-300">
+                  {booking.time ? formatTime(booking.time) : "-"}
+                </p>
+              </div>
             </>
           )}
 
@@ -474,7 +487,7 @@ export default function BookingCard({
             </button>
           )}
 
-          {booking.status === "CONFIRMED" && onCancel ? (
+          {booking.status === "CONFIRMED" && onCancel && !isPastBooking() ? (
             <button
               onClick={() => {
                 onCancel(booking.id);
@@ -499,11 +512,13 @@ export default function BookingCard({
               </div>
             </div>
           ) : (
-            <div className="w-full rounded-lg border-2 border-yellow-600/50 bg-yellow-600/10 px-6 py-3 text-center">
-              <div className="flex items-center justify-center gap-2 text-yellow-400">
-                <span className="font-semibold">Pending Confirmation</span>
+            !isPastBooking() && (
+              <div className="w-full rounded-lg border-2 border-yellow-600/50 bg-yellow-600/10 px-6 py-3 text-center">
+                <div className="flex items-center justify-center gap-2 text-yellow-400">
+                  <span className="font-semibold">Pending Confirmation</span>
+                </div>
               </div>
-            </div>
+            )
           )}
         </div>
       </div>

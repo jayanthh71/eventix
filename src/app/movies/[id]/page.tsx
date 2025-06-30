@@ -14,13 +14,23 @@ export default function MoviePage({
 }) {
   const { id } = use(params);
   const { data: movie, isLoading, error } = useMovieById(id);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedShowtime, setSelectedShowtime] = useState<string | null>(null);
 
   useEffect(() => {
-    if (movie && movie.showtimes.length > 0 && !selectedShowtime) {
-      setSelectedShowtime(new Date(movie.showtimes[0]).toISOString());
+    if (movie) {
+      if (movie.dateArr.length > 0 && !selectedDate) {
+        setSelectedDate(new Date(movie.dateArr[0]).toISOString());
+      }
+      if (movie.locationArr.length > 0 && !selectedLocation) {
+        setSelectedLocation(movie.locationArr[0]);
+      }
+      if (movie.showtimes.length > 0 && !selectedShowtime) {
+        setSelectedShowtime(new Date(movie.showtimes[0]).toISOString());
+      }
     }
-  }, [movie, selectedShowtime]);
+  }, [movie, selectedDate, selectedLocation, selectedShowtime]);
 
   if (isLoading) {
     return (
@@ -80,7 +90,9 @@ export default function MoviePage({
                       />
                     </svg>
                     <span className="text-lg font-medium">
-                      {movie.location}
+                      {movie.locationArr.length > 1
+                        ? `${movie.locationArr.length} locations`
+                        : movie.locationArr[0]}
                     </span>
                   </div>
 
@@ -97,12 +109,7 @@ export default function MoviePage({
                       />
                     </svg>
                     <span className="text-lg font-medium">
-                      {new Date(movie.date).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
+                      {`Starting from ${new Date(movie.dateArr[0]).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`}
                     </span>
                   </div>
 
@@ -119,15 +126,7 @@ export default function MoviePage({
                       />
                     </svg>
                     <span className="text-lg font-medium">
-                      Starts from{" "}
-                      {new Date(movie.showtimes[0]).toLocaleTimeString(
-                        "en-US",
-                        {
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        },
-                      )}
+                      {`${movie.showtimes.length} showtimes available`}
                     </span>
                   </div>
                 </div>
@@ -142,8 +141,8 @@ export default function MoviePage({
                     ₹{movie.price.toFixed(2)}
                   </p>
                   <Link
-                    href={`/movies/${movie.id}/book?showtime=${selectedShowtime}`}
-                    className="font-anek inline-block w-full transform rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-lg font-bold text-white transition-all hover:scale-105 hover:from-blue-700 hover:to-purple-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    href={`/movies/${movie.id}/book?location=${selectedLocation}&date=${selectedDate}&showtime=${selectedShowtime}`}
+                    className="font-anek } inline-block w-full transform rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 text-lg font-bold text-white transition-all hover:scale-105 hover:from-blue-700 hover:to-purple-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                   >
                     Book Tickets
                   </Link>
@@ -158,96 +157,125 @@ export default function MoviePage({
         <div className="mx-auto max-w-6xl px-8 py-12 sm:px-12">
           <div className="mb-8 text-center">
             <h2 className="font-anek mb-2 text-3xl font-bold text-white">
-              Movie Information
+              Available Dates
             </h2>
             <p className="font-anek text-gray-400">
-              Everything you need to know about this amazing movie
+              Choose your preferred date
             </p>
           </div>
+          <div className="flex flex-wrap justify-between gap-4">
+            {movie.dateArr.map((date, index) => {
+              const dateString = new Date(date).toISOString();
+              const isSelected = selectedDate === dateString;
 
-          <div className="mb-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className="rounded-xl border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 p-6 text-center">
-              <div className="mb-4 flex items-center justify-center">
-                <div className="rounded-full border border-emerald-500/30 bg-emerald-600/20 p-3">
-                  <svg
-                    className="h-6 w-6 text-emerald-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="font-anek mb-2 text-xl font-bold text-white">
-                Theatre
-              </h3>
-              <p className="font-anek mb-1 text-lg font-semibold text-emerald-400">
-                {movie.location}
-              </p>
-              <p className="font-anek text-gray-400">Cinema hall</p>
-            </div>
-
-            <div className="rounded-xl border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 p-6 text-center">
-              <div className="mb-4 flex items-center justify-center">
-                <div className="rounded-full border border-blue-500/30 bg-blue-600/20 p-3">
-                  <svg
-                    className="h-6 w-6 text-blue-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="font-anek mb-2 text-xl font-bold text-white">
-                Date
-              </h3>
-              <p className="font-anek mb-1 text-lg font-semibold text-blue-400">
-                {new Date(movie.date).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-              <p className="font-anek text-gray-400">
-                {new Date(movie.date).getFullYear()}
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 p-6 text-center md:col-span-2 lg:col-span-1">
-              <div className="mb-4 flex items-center justify-center">
-                <div className="rounded-full border border-purple-500/30 bg-purple-600/20 p-3">
-                  <svg
-                    className="h-6 w-6 text-purple-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM2 10v6a2 2 0 002 2h12a2 2 0 002-2v-6H2zm4 2a1 1 0 011-1h2a1 1 0 110 2H7a1 1 0 01-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="font-anek mb-2 text-xl font-bold text-white">
-                Price
-              </h3>
-              <p className="font-anek mb-1 text-2xl font-bold text-purple-400">
-                ₹{movie.price.toFixed(2)}
-              </p>
-              <p className="font-anek text-gray-400">per ticket</p>
-            </div>
+              return (
+                <button
+                  key={index}
+                  onClick={() => setSelectedDate(dateString)}
+                  className={`min-w-[200px] flex-1 cursor-pointer rounded-xl border p-6 text-center transition-all duration-300 ${
+                    isSelected
+                      ? "border-blue-500/50 bg-gradient-to-br from-blue-600/20 to-blue-800/20 backdrop-blur-sm"
+                      : "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-blue-500/30 hover:from-blue-600/10 hover:to-blue-800/10"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-center">
+                    <div
+                      className={`rounded-full border p-2 ${
+                        isSelected
+                          ? "border-blue-500/50 bg-blue-600/30"
+                          : "border-blue-500/30 bg-blue-600/20"
+                      }`}
+                    >
+                      <svg
+                        className="h-5 w-5 text-blue-400"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="font-anek text-lg font-bold text-blue-400">
+                    {new Date(date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
+                  <p className="font-anek mt-1 text-sm text-gray-400">
+                    {new Date(date).toLocaleDateString("en-US", {
+                      year: "numeric",
+                    })}
+                  </p>
+                </button>
+              );
+            })}
           </div>
+        </div>
+      </div>
 
+      <div className="mx-auto max-w-6xl px-8 py-12 sm:px-12">
+        <div className="mb-8 text-center">
+          <h2 className="font-anek mb-2 text-3xl font-bold text-white">
+            Available Locations
+          </h2>
+          <p className="font-anek text-gray-400">
+            Choose your preferred location
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-between gap-4">
+          {movie.locationArr.map((location, index) => {
+            const isSelected = selectedLocation === location;
+
+            return (
+              <button
+                key={index}
+                onClick={() => setSelectedLocation(location)}
+                className={`min-w-[200px] flex-1 cursor-pointer rounded-xl border p-6 text-center transition-all duration-300 ${
+                  isSelected
+                    ? "border-emerald-500/50 bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 backdrop-blur-sm"
+                    : "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-emerald-500/30 hover:from-emerald-600/10 hover:to-emerald-800/10"
+                }`}
+              >
+                <div className="mb-2 flex items-center justify-center">
+                  <div
+                    className={`rounded-full border p-2 ${
+                      isSelected
+                        ? "border-emerald-500/50 bg-emerald-600/30"
+                        : "border-emerald-500/30 bg-emerald-600/20"
+                    }`}
+                  >
+                    <svg
+                      className="h-5 w-5 text-emerald-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <div className="font-anek text-lg font-bold text-emerald-400">
+                  {location}
+                </div>
+                <p className="font-anek mt-1 text-sm text-gray-400">
+                  Cinema hall
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="bg-gray-900">
+        <div className="mx-auto max-w-6xl px-8 py-12 sm:px-12">
           <div className="mb-8 text-center">
             <h3 className="font-anek mb-2 text-2xl font-bold text-white">
               Available Showtimes
@@ -334,7 +362,7 @@ export default function MoviePage({
                 </div>
 
                 <Link
-                  href={`/movies/${movie.id}/book?showtime=${selectedShowtime}`}
+                  href={`/movies/${movie.id}/book?date=${selectedDate}&location=${selectedLocation}&showtime=${selectedShowtime}`}
                   className="font-anek group relative transform overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:from-blue-700 hover:to-purple-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 >
                   <span className="relative z-10">Book Now</span>

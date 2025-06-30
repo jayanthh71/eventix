@@ -249,7 +249,9 @@ export default async function generateEmail(
               <div class="detail-row">
                 <span class="detail-label">Date:</span>
                 <span class="detail-value"
-                  >${new Date(event.date).toLocaleDateString("en-US", {
+                  >${new Date(
+                    event.category === "MOVIE" ? booking.time : event.date,
+                  ).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
                     month: "long",
@@ -260,7 +262,9 @@ export default async function generateEmail(
               <div class="detail-row">
                 <span class="detail-label">Time:</span>
                 <span class="detail-value"
-                  >${new Date(event.date).toLocaleTimeString("en-US", {
+                  >${new Date(
+                    event.category === "MOVIE" ? booking.time : event.date,
+                  ).toLocaleTimeString("en-US", {
                     hour: "numeric",
                     minute: "2-digit",
                     hour12: true,
@@ -269,7 +273,9 @@ export default async function generateEmail(
               </div>
               <div class="detail-row">
                 <span class="detail-label">Venue:</span>
-                <span class="detail-value">${event.location}</span>
+                <span class="detail-value">${
+                  event.category === "MOVIE" ? booking.location : event.location
+                }</span>
               </div>
               `
                   : ""

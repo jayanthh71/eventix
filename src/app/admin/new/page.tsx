@@ -14,10 +14,10 @@ type MovieForm = {
   title: string;
   description: string;
   imageUrl: string;
-  location: string;
   price: string;
   category: "MOVIE";
-  date: string;
+  dates: string[];
+  locations: string[];
   showtimes: string[];
 };
 type ConcertForm = {
@@ -49,15 +49,16 @@ export default function AdminNewEvent() {
     EventCategory.MOVIE,
   );
   const [currentShowtimeInput, setCurrentShowtimeInput] = useState<string>("");
+  const [currentLocationInput, setCurrentLocationInput] = useState<string>("");
 
   const [formData, setFormData] = useState<FormState>({
     title: "",
     description: "",
     imageUrl: "",
-    location: "",
     price: "",
     category: EventCategory.MOVIE,
-    date: "",
+    dates: [],
+    locations: [],
     showtimes: [],
   });
 
@@ -94,7 +95,7 @@ export default function AdminNewEvent() {
 
   const updateField = (
     field: keyof MovieForm | keyof ConcertForm,
-    value: string | EventCategory,
+    value: string | EventCategory | string[],
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }) as FormState);
     if (error) setError("");
@@ -114,6 +115,30 @@ export default function AdminNewEvent() {
     });
   };
 
+  const removeDate = (idx: number) => {
+    if (formData.category !== "MOVIE") return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      const newDates = prev.dates.filter((_, i) => i !== idx);
+      return {
+        ...prev,
+        dates: newDates.length > 0 ? newDates : [""],
+      };
+    });
+  };
+
+  const removeLocation = (idx: number) => {
+    if (formData.category !== "MOVIE") return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      const newLocations = prev.locations.filter((_, i) => i !== idx);
+      return {
+        ...prev,
+        locations: newLocations.length > 0 ? newLocations : [""],
+      };
+    });
+  };
+
   const addShowtimeFromInput = () => {
     if (formData.category !== "MOVIE") return;
     const input = currentShowtimeInput.trim();
@@ -129,12 +154,36 @@ export default function AdminNewEvent() {
     setCurrentShowtimeInput("");
   };
 
+  const addLocationFromInput = () => {
+    if (formData.category !== "MOVIE") return;
+    const input = currentLocationInput.trim();
+    if (!input) return;
+    if (formData.locations.includes(input)) return;
+    setFormData((prev) => {
+      if (prev.category !== "MOVIE") return prev;
+      return {
+        ...prev,
+        locations: [...prev.locations, input],
+      };
+    });
+    setCurrentLocationInput("");
+  };
+
   const handleShowtimeInputKeyDown = (
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       addShowtimeFromInput();
+    }
+  };
+
+  const handleLocationInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addLocationFromInput();
     }
   };
 
@@ -308,8 +357,8 @@ export default function AdminNewEvent() {
     try {
       let payload;
       if (activeTab === EventCategory.MOVIE && formData.category === "MOVIE") {
-        if (!formData.date) {
-          setError("Please select a date for the movie");
+        if (!formData.dates.length || !formData.locations.length) {
+          setError("Please select at least one date and location");
           setIsSubmitting(false);
           return;
         }
@@ -333,14 +382,29 @@ export default function AdminNewEvent() {
 
         payload = {
           ...formData,
-          showtimes: validShowtimes.map((t) => `${formData.date}T${t}`),
+          dateArr: formData.dates,
+          locationArr: formData.locations,
+          showtimes: validShowtimes.map((time) => {
+            const [hours, minutes] = time.split(":");
+            const baseDate = formData.dates[0];
+            const combinedDateTime = new Date(baseDate);
+            combinedDateTime.setHours(parseInt(hours, 10));
+            combinedDateTime.setMinutes(parseInt(minutes, 10));
+            combinedDateTime.setSeconds(0);
+            combinedDateTime.setMilliseconds(0);
+            return combinedDateTime.toISOString();
+          }),
         };
       } else if (
         activeTab === EventCategory.CONCERT &&
         formData.category === "CONCERT"
       ) {
-        if (!formData.date || !validateTime(formData.time)) {
-          setError("Please enter a valid date and time");
+        if (
+          !formData.date ||
+          !validateTime(formData.time) ||
+          !formData.location
+        ) {
+          setError("Please enter a valid date, time, and location");
           setIsSubmitting(false);
           return;
         }
@@ -360,7 +424,7 @@ export default function AdminNewEvent() {
         return;
       }
 
-      const response = await fetch("/api/events", {
+      const response = await fetch("/api/admin/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -472,13 +536,14 @@ export default function AdminNewEvent() {
                     title: "",
                     description: "",
                     imageUrl: "",
-                    location: "",
                     price: "",
                     category: EventCategory.MOVIE,
-                    date: "",
+                    dates: [],
+                    locations: [],
                     showtimes: [],
                   });
                   setCurrentShowtimeInput("");
+                  setCurrentLocationInput("");
                   setError("");
                   setSuccess("");
                 }}
@@ -505,6 +570,7 @@ export default function AdminNewEvent() {
                     time: "",
                   });
                   setCurrentShowtimeInput("");
+                  setCurrentLocationInput("");
                   setError("");
                   setSuccess("");
                 }}
@@ -733,7 +799,6 @@ export default function AdminNewEvent() {
                     value={formData.date}
                     onDateChangeAction={(date) => updateField("date", date)}
                     minDate={new Date().toISOString().split("T")[0]}
-                    required
                     placeholder="Select event date"
                   />
                 </div>
@@ -758,7 +823,6 @@ export default function AdminNewEvent() {
                       }`}
                       placeholder="HH:MM"
                       pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$"
-                      required
                     />
                   </div>
                   {formData.time && !validateTime(formData.time) && (
@@ -770,21 +834,48 @@ export default function AdminNewEvent() {
               </div>
             ) : null}
 
+            {activeTab === EventCategory.CONCERT &&
+            formData.category === "CONCERT" ? (
+              <div>
+                <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                  Location *
+                </label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => updateField("location", e.target.value)}
+                  className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                  placeholder="Enter venue location"
+                />
+              </div>
+            ) : null}
+
             {activeTab === EventCategory.MOVIE &&
             formData.category === "MOVIE" ? (
               <div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                      Date *
+                      Dates *
                     </label>
-                    <DatePicker
-                      value={formData.date}
-                      onDateChangeAction={(date) => updateField("date", date)}
-                      minDate={new Date().toISOString().split("T")[0]}
-                      required
-                      placeholder="Select event date"
-                    />
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <DatePicker
+                          value={formData.dates[0] || ""}
+                          onDateChangeAction={(date) => {
+                            if (!date) return;
+                            if (formData.dates.includes(date)) return;
+                            const newDates = [date];
+                            if (formData.dates.length > 0) {
+                              newDates.push(...formData.dates);
+                            }
+                            updateField("dates", newDates);
+                          }}
+                          minDate={new Date().toISOString().split("T")[0]}
+                          placeholder="Select event date"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
@@ -819,64 +910,178 @@ export default function AdminNewEvent() {
                   </div>
                 </div>
 
-                {formData.showtimes.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {formData.showtimes.map((showtime, idx) => (
-                      <div
-                        key={idx}
-                        className="group flex items-center gap-1.5 rounded-lg bg-gray-700/80 px-2.5 py-1.5 text-sm text-white backdrop-blur-sm transition-all duration-200 hover:bg-gray-600/80"
-                      >
-                        <svg
-                          className="h-3.5 w-3.5 text-gray-400"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span className="font-anek text-xs font-medium">
-                          {showtime}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeShowtime(idx)}
-                          className="ml-0.5 rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-600/50 hover:text-gray-300"
+                <div className="mt-4">
+                  <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
+                    Locations *
+                  </label>
+                  <input
+                    type="text"
+                    value={currentLocationInput}
+                    onChange={(e) => setCurrentLocationInput(e.target.value)}
+                    onKeyDown={handleLocationInputKeyDown}
+                    className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
+                    placeholder="Enter venue location"
+                  />
+                </div>
+
+                {/* Date Bubbles */}
+                {formData.dates.length > 0 && formData.dates[0] && (
+                  <div className="mt-3">
+                    <p className="font-anek mb-2 text-sm font-medium text-gray-300">
+                      Selected Dates:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.dates.map((date, idx) => (
+                        <div
+                          key={idx}
+                          className="group flex items-center gap-1.5 rounded-lg bg-blue-700/80 px-2.5 py-1.5 text-sm text-white backdrop-blur-sm transition-all duration-200 hover:bg-blue-600/80"
                         >
                           <svg
-                            className="h-3 w-3"
+                            className="h-3.5 w-3.5 text-blue-400"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
                             <path
                               fillRule="evenodd"
-                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
                               clipRule="evenodd"
                             />
                           </svg>
-                        </button>
-                      </div>
-                    ))}
+                          <span className="font-anek text-xs font-medium">
+                            {new Date(date).toLocaleDateString("en-US", {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                          {formData.dates.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeDate(idx)}
+                              className="ml-0.5 rounded-full p-0.5 text-blue-400 transition-colors hover:bg-blue-600/50 hover:text-blue-300"
+                            >
+                              <svg
+                                className="h-3 w-3"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Location Bubbles */}
+                {formData.locations.length > 0 && formData.locations[0] && (
+                  <div className="mt-3">
+                    <p className="font-anek mb-2 text-sm font-medium text-gray-300">
+                      Selected Locations:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.locations.map((location, idx) => (
+                        <div
+                          key={idx}
+                          className="group flex items-center gap-1.5 rounded-lg bg-emerald-700/80 px-2.5 py-1.5 text-sm text-white backdrop-blur-sm transition-all duration-200 hover:bg-emerald-600/80"
+                        >
+                          <svg
+                            className="h-3.5 w-3.5 text-emerald-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="font-anek text-xs font-medium">
+                            {location}
+                          </span>
+                          {formData.locations.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeLocation(idx)}
+                              className="ml-0.5 rounded-full p-0.5 text-emerald-400 transition-colors hover:bg-emerald-600/50 hover:text-emerald-300"
+                            >
+                              <svg
+                                className="h-3 w-3"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Showtime Bubbles */}
+                {formData.showtimes.length > 0 && (
+                  <div className="mt-3">
+                    <p className="font-anek mb-2 text-sm font-medium text-gray-300">
+                      Selected Showtimes:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {formData.showtimes.map((showtime, idx) => (
+                        <div
+                          key={idx}
+                          className="group flex items-center gap-1.5 rounded-lg bg-orange-700/80 px-2.5 py-1.5 text-sm text-white backdrop-blur-sm transition-all duration-200 hover:bg-orange-600/80"
+                        >
+                          <svg
+                            className="h-3.5 w-3.5 text-orange-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span className="font-anek text-xs font-medium">
+                            {showtime}
+                          </span>
+                          {formData.showtimes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeShowtime(idx)}
+                              className="ml-0.5 rounded-full p-0.5 text-orange-400 transition-colors hover:bg-orange-600/50 hover:text-orange-300"
+                            >
+                              <svg
+                                className="h-3 w-3"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             ) : null}
-
-            <div>
-              <label className="font-anek mb-2 block text-sm font-medium text-gray-300">
-                Location *
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => updateField("location", e.target.value)}
-                className="font-anek w-full rounded-xl border border-gray-600/50 bg-gray-700/50 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-sm transition-all duration-300 hover:border-indigo-500/50 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                placeholder="Enter venue location"
-                required
-              />
-            </div>
 
             <div>
               <label className="font-anek mb-2 block text-sm font-medium text-gray-300">

@@ -20,7 +20,7 @@ export default function Movies() {
       (movie) =>
         movie.title.toLowerCase().includes(query) ||
         movie.description.toLowerCase().includes(query) ||
-        movie.location.toLowerCase().includes(query),
+        movie.locationArr.some((loc) => loc.toLowerCase().includes(query)),
     );
   }, [allMovies, searchQuery]);
 

@@ -23,6 +23,8 @@ export default function MovieBooking({
   const { data: movie, isLoading: movieLoading, error } = useMovieById(id);
 
   const [seats, setSeats] = useState(1);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [selectedShowtime, setSelectedShowtime] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [isBooking, setIsBooking] = useState(false);
@@ -32,13 +34,19 @@ export default function MovieBooking({
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
+    const dateParam = searchParams.get("date");
+    const locationParam = searchParams.get("location");
     const showtimeParam = searchParams.get("showtime");
+    if (dateParam) {
+      setSelectedDate(dateParam);
+    }
+    if (locationParam) {
+      setSelectedLocation(locationParam);
+    }
     if (showtimeParam) {
       setSelectedShowtime(showtimeParam);
-    } else if (movie && movie.showtimes && movie.showtimes.length > 0) {
-      setSelectedShowtime(new Date(movie.showtimes[0]).toISOString());
     }
-  }, [searchParams, movie]);
+  }, [searchParams]);
 
   const totalPrice = movie ? seats * movie.price : 0;
 
@@ -50,8 +58,23 @@ export default function MovieBooking({
     if (seats > 1) setSeats(seats - 1);
   };
 
+  const getBookingTime = () => {
+    if (!selectedDate || !selectedShowtime) return "";
+    const date = new Date(selectedDate);
+    const time = new Date(selectedShowtime);
+    date.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    return date.toISOString();
+  };
+
   const handleBooking = async () => {
-    if (!movie || !user || !selectedShowtime) return;
+    if (
+      !movie ||
+      !user ||
+      !selectedDate ||
+      !selectedLocation ||
+      !selectedShowtime
+    )
+      return;
 
     setIsBooking(true);
     setBookingError(null);
@@ -67,7 +90,8 @@ export default function MovieBooking({
           eventId: movie.id,
           quantity: seats,
           totalPrice,
-          time: new Date(selectedShowtime),
+          time: getBookingTime(),
+          location: selectedLocation,
         }),
       });
 
@@ -213,13 +237,13 @@ export default function MovieBooking({
               </p>
               <div className="space-y-3">
                 <Link
-                  href={`/login?redirect=/movies/${id}/book?showtime=${selectedShowtime}`}
+                  href={`/login?redirect=/movies/${id}/book?date=${selectedDate}&location=${selectedLocation}&showtime=${selectedShowtime}`}
                   className="block w-full rounded-xl bg-gradient-to-r from-purple-600/80 to-pink-600/80 px-6 py-3 font-medium text-white backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:from-purple-500/80 hover:to-pink-500/80 focus:ring-2 focus:ring-purple-500/30 focus:outline-none"
                 >
                   Login
                 </Link>
                 <Link
-                  href={`/register?redirect=/movies/${id}/book?showtime=${selectedShowtime}`}
+                  href={`/register?redirect=/movies/${id}/book?date=${selectedDate}&location=${selectedLocation}&showtime=${selectedShowtime}`}
                   className="block w-full rounded-xl border border-gray-600/50 bg-gray-800/50 px-6 py-3 font-medium text-gray-300 backdrop-blur-sm transition-all duration-300 hover:border-gray-500/50 hover:bg-gray-700/50 focus:ring-2 focus:ring-gray-500/30 focus:outline-none"
                 >
                   Create Account
@@ -422,7 +446,7 @@ export default function MovieBooking({
                     Theatre
                   </h3>
                   <p className="font-anek text-lg font-bold text-emerald-400">
-                    {movie.location}
+                    {selectedLocation || "Not selected"}
                   </p>
                 </div>
 
@@ -446,11 +470,13 @@ export default function MovieBooking({
                     Date
                   </h3>
                   <p className="font-anek text-lg font-bold text-blue-400">
-                    {new Date(movie.date).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {selectedDate
+                      ? new Date(selectedDate).toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "Select a showtime"}
                   </p>
                 </div>
               </div>
@@ -458,6 +484,117 @@ export default function MovieBooking({
           </div>
 
           <div className="space-y-6">
+            <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-6 backdrop-blur-sm">
+              <h3 className="font-anek mb-6 text-xl font-bold text-white">
+                Select Date
+              </h3>
+
+              <div className="flex flex-wrap justify-between gap-4">
+                {movie.dateArr.map((date, index) => {
+                  const dateString = new Date(date).toISOString();
+                  const isSelected = selectedDate === dateString;
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedDate(dateString)}
+                      className={`min-w-[200px] flex-1 cursor-pointer rounded-xl border p-6 text-center transition-all duration-300 ${
+                        isSelected
+                          ? "border-blue-500/50 bg-gradient-to-br from-blue-600/20 to-blue-800/20 backdrop-blur-sm"
+                          : "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-blue-500/30 hover:from-blue-600/10 hover:to-blue-800/10"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-center">
+                        <div
+                          className={`rounded-full border p-2 ${
+                            isSelected
+                              ? "border-blue-500/50 bg-blue-600/30"
+                              : "border-blue-500/30 bg-blue-600/20"
+                          }`}
+                        >
+                          <svg
+                            className="h-5 w-5 text-blue-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="font-anek text-lg font-bold text-blue-400">
+                        {new Date(date).toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                      <p className="font-anek mt-1 text-sm text-gray-400">
+                        {new Date(date).toLocaleDateString("en-US", {
+                          year: "numeric",
+                        })}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-6 backdrop-blur-sm">
+              <h3 className="font-anek mb-6 text-xl font-bold text-white">
+                Select Location
+              </h3>
+
+              <div className="flex flex-wrap justify-between gap-4">
+                {movie.locationArr.map((location, index) => {
+                  const isSelected = selectedLocation === location;
+
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedLocation(location)}
+                      className={`min-w-[200px] flex-1 cursor-pointer rounded-xl border p-6 text-center transition-all duration-300 ${
+                        isSelected
+                          ? "border-emerald-500/50 bg-gradient-to-br from-emerald-600/20 to-emerald-800/20 backdrop-blur-sm"
+                          : "border-gray-700 bg-gradient-to-br from-gray-800 to-gray-900 hover:border-emerald-500/30 hover:from-emerald-600/10 hover:to-emerald-800/10"
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center justify-center">
+                        <div
+                          className={`rounded-full border p-2 ${
+                            isSelected
+                              ? "border-emerald-500/50 bg-emerald-600/30"
+                              : "border-emerald-500/30 bg-emerald-600/20"
+                          }`}
+                        >
+                          <svg
+                            className="h-5 w-5 text-emerald-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                      <div className="font-anek text-lg font-bold text-emerald-400">
+                        {location}
+                      </div>
+                      <p className="font-anek mt-1 text-sm text-gray-400">
+                        Cinema hall
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-6 backdrop-blur-sm">
               <h3 className="font-anek mb-6 text-xl font-bold text-white">
                 Select Showtime
@@ -507,11 +644,7 @@ export default function MovieBooking({
                         })}
                       </div>
                       <p className="font-anek mt-1 text-sm text-gray-400">
-                        {new Date(movie.date).toLocaleDateString("en-US", {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        Show starts
                       </p>
                     </button>
                   );
@@ -520,7 +653,7 @@ export default function MovieBooking({
             </div>
 
             <div className="rounded-2xl border border-gray-700/50 bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-6 backdrop-blur-sm">
-              <h3 className="font-anek mb-4 text-xl font-bold text-white">
+              <h3 className="font-anek mb-6 text-xl font-bold text-white">
                 Your Details
               </h3>
 
@@ -703,6 +836,8 @@ export default function MovieBooking({
                 onClick={handleBooking}
                 disabled={
                   isBooking ||
+                  !selectedDate ||
+                  !selectedLocation ||
                   !selectedShowtime ||
                   !!(
                     paymentMethod === "wallet" &&
@@ -747,7 +882,7 @@ export default function MovieBooking({
                   amount={totalPrice}
                   eventId={movie.id}
                   quantity={seats}
-                  time={selectedShowtime || ""}
+                  time={getBookingTime()}
                   onSuccess={handleStripeSuccess}
                   onError={handleStripeError}
                 />

@@ -68,8 +68,10 @@ model Event {
   description String
   imageUrl    String?
   date        DateTime
+  dateArr     DateTime[]
   showtimes   DateTime[]
   location    String
+  locationArr String[]
   price       Float
   category    EventCategory
 
@@ -118,6 +120,7 @@ model Booking {
   quantity   Int
   totalPrice Float
   time       DateTime
+  location   String?
   status     BookingStatus @default(PENDING)
 
   paymentMethod   PaymentMethod @default(WALLET)

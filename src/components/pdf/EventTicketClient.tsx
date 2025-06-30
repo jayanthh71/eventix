@@ -256,7 +256,9 @@ export default function EventTicketClient({
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Venue</Text>
-              <Text style={styles.infoValue}>{event.location}</Text>
+              <Text style={styles.infoValue}>
+                {event.category === "MOVIE" ? booking.location : event.location}
+              </Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>

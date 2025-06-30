@@ -52,6 +52,9 @@ export default function Bookings() {
   };
 
   const formatBookingForCard = (booking: BookingWithIncludes) => {
+    const isMovie = booking.event && booking.event.category === "MOVIE";
+    const safeLocation =
+      booking.location === null ? undefined : booking.location;
     return {
       id: booking.id,
       quantity: booking.quantity,
@@ -65,6 +68,7 @@ export default function Bookings() {
         booking.createdAt instanceof Date
           ? booking.createdAt.toISOString()
           : new Date(booking.createdAt).toISOString(),
+      location: isMovie ? safeLocation || undefined : undefined,
       event: booking.event
         ? {
             title: booking.event.title,
@@ -75,6 +79,8 @@ export default function Bookings() {
             location: booking.event.location,
             imageUrl: booking.event.imageUrl || undefined,
             category: booking.event.category as "MOVIE" | "CONCERT",
+            locationArr: (booking.event as any).locationArr || [],
+            dateArr: (booking.event as any).dateArr || [],
           }
         : undefined,
       train: booking.train
@@ -289,7 +295,7 @@ export default function Bookings() {
                       {transactionHistory.map((transaction) => (
                         <TransactionCard
                           key={transaction.id}
-                          transaction={transaction}
+                          transaction={transaction as any}
                         />
                       ))}
                     </div>

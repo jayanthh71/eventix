@@ -13,8 +13,9 @@ export default async function generateQR(
           bookingId: booking.id,
           eventId: event.id,
           eventTitle: event.title,
-          eventLocation: event.location,
-          eventDate: booking.time,
+          eventLocation:
+            event.category === "MOVIE" ? booking.location : event.location,
+          eventDate: event.category === "MOVIE" ? booking.time : event.date,
           userName: user.name,
           userEmail: user.email,
           quantity: booking.quantity,
