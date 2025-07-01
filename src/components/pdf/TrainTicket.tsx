@@ -9,24 +9,30 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import path from "path";
 
 Font.register({
   family: "Anek Latin",
   fonts: [
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Regular.ttf`,
+      src: path.join(process.cwd(), "public", "fonts", "AnekLatin-Regular.ttf"),
       fontWeight: "normal",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Medium.ttf`,
+      src: path.join(process.cwd(), "public", "fonts", "AnekLatin-Medium.ttf"),
       fontWeight: "medium",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-SemiBold.ttf`,
+      src: path.join(
+        process.cwd(),
+        "public",
+        "fonts",
+        "AnekLatin-SemiBold.ttf",
+      ),
       fontWeight: "semibold",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Bold.ttf`,
+      src: path.join(process.cwd(), "public", "fonts", "AnekLatin-Bold.ttf"),
       fontWeight: "bold",
     },
   ],
@@ -206,13 +212,14 @@ export default function TrainTicket({
   train,
   user,
   booking,
+  qrCode,
 }: {
   train: Train;
   user: User;
   booking: Booking;
+  qrCode: string;
 }) {
   const trainDateTime = new Date(booking.time);
-  const qrCode = generateQR(booking, user, undefined, train);
 
   return (
     <Document>
@@ -221,7 +228,7 @@ export default function TrainTicket({
           <View style={styles.logoContainer}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image
-              src={`${process.cwd()}/public/logo.png`}
+              src={path.join(process.cwd(), "public", "logo.png")}
               style={styles.logoImage}
             />
             <Text style={styles.logo}>Eventix</Text>

@@ -37,7 +37,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { paymentIntentId, time } = await request.json();
+    const reqBody = await request.json();
+    const { paymentIntentId, time, location, seatIds, date, showtime } =
+      reqBody;
 
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
@@ -72,6 +74,8 @@ export async function POST(request: NextRequest) {
       paymentIntentId: string;
       eventId?: string;
       trainId?: string;
+      location?: string;
+      seatIds?: string[];
     } = {
       userId: userId,
       quantity: parseInt(paymentIntent.metadata.quantity),
@@ -88,19 +92,103 @@ export async function POST(request: NextRequest) {
     if (paymentIntent.metadata.trainId) {
       bookingData.trainId = paymentIntent.metadata.trainId;
     }
+    if (location) {
+      bookingData.location = location;
+    } else if (paymentIntent.metadata.location) {
+      bookingData.location = paymentIntent.metadata.location;
+    }
 
-    const booking = await prisma.booking.create({
-      data: bookingData,
-      include: {
-        event: true,
-        train: true,
-        user: true,
-      },
+    let finalSeatIds: string[] | undefined = undefined;
+    if (seatIds && Array.isArray(seatIds)) {
+      finalSeatIds = seatIds;
+    } else if (paymentIntent.metadata.seatIds) {
+      finalSeatIds = paymentIntent.metadata.seatIds.split(",");
+    }
+
+    const eventId = bookingData.eventId || paymentIntent.metadata.eventId;
+    const bookingDate = date || undefined;
+    const bookingLocation =
+      location || paymentIntent.metadata.location || undefined;
+    const bookingShowtime = showtime || undefined;
+
+    if (
+      eventId &&
+      finalSeatIds &&
+      Array.isArray(finalSeatIds) &&
+      finalSeatIds.length > 0
+    ) {
+      if (finalSeatIds.length !== bookingData.quantity) {
+        return NextResponse.json(
+          { error: "Number of selected seats does not match quantity" },
+          { status: 400 },
+        );
+      }
+      const seats = await prisma.seat.findMany({
+        where: {
+          row: {
+            in: finalSeatIds.map((seatId) => seatId.split("-")[0]),
+          },
+          number: {
+            in: finalSeatIds.map((seatId) => Number(seatId.split("-")[1])),
+          },
+          eventId,
+          date: bookingDate ? new Date(bookingDate) : undefined,
+          location: bookingLocation,
+        },
+      });
+      if (seats.length > 0) {
+        return NextResponse.json(
+          { error: "One or more selected seats are already booked" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const booking = await tx.booking.create({
+        data: bookingData,
+        include: {
+          event: true,
+          train: true,
+          user: true,
+        },
+      });
+
+      if (
+        eventId &&
+        finalSeatIds &&
+        Array.isArray(finalSeatIds) &&
+        finalSeatIds.length > 0
+      ) {
+        const seatCreates = finalSeatIds.map((seatId) => {
+          const [row, number] = seatId.split("-");
+          // Ensure row is always a letter
+          const rowLetter = /^[A-Z]$/.test(row)
+            ? row
+            : String.fromCharCode(64 + Number(row));
+          const seatData: any = {
+            eventId,
+            location: bookingLocation,
+            date: new Date(time),
+            showtime: new Date(time),
+            row: rowLetter,
+            number: Number(number),
+            bookingId: booking.id,
+          };
+
+          return tx.seat.create({
+            data: seatData,
+          });
+        });
+        await Promise.all(seatCreates);
+      }
+
+      return booking;
     });
 
     return NextResponse.json({
       success: true,
-      booking,
+      booking: result,
     });
   } catch (error) {
     console.error("Error confirming payment:", error);

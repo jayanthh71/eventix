@@ -1,10 +1,20 @@
 import EventTicket from "@/components/pdf/EventTicket";
 import TrainTicket from "@/components/pdf/TrainTicket";
+import generateQR from "@/lib/events/generateQR";
+import prisma from "@/lib/prisma";
 import { Booking, Event, Train, User } from "@prisma/client";
 import { pdf } from "@react-pdf/renderer";
 import fs from "fs";
 import nodemailer from "nodemailer";
 import path from "path";
+
+async function getSeatsFromBooking(bookingId: string) {
+  return await prisma.seat.findMany({
+    where: { bookingId },
+    select: { row: true, number: true },
+    orderBy: [{ row: "asc" }, { number: "asc" }],
+  });
+}
 
 export default async function generateEmail(
   user: User,
@@ -23,26 +33,60 @@ export default async function generateEmail(
   let pdfBuffer: Buffer | null = null;
   let filename = "";
 
+  let seatList: { row: string; number: number }[] = [];
+  let qrCode = "";
+  if (event) {
+    seatList = await getSeatsFromBooking(booking.id);
+    const qrResult = await generateQR(booking, user, event);
+    qrCode = qrResult || "";
+  } else if (train) {
+    const qrResult = await generateQR(booking, user, undefined, train);
+    qrCode = qrResult || "";
+  }
+
   try {
     let ticketComponent;
 
     if (train) {
+      console.log("Creating train ticket component...");
       ticketComponent = (
-        <TrainTicket train={train} user={user} booking={booking} />
+        <TrainTicket
+          train={train}
+          user={user}
+          booking={booking}
+          qrCode={qrCode}
+        />
       );
       filename = `${train.name.replace(/[^a-zA-Z0-9]/g, "_")}_Train_Ticket.pdf`;
     } else if (event) {
+      console.log("Creating event ticket component...");
       ticketComponent = (
-        <EventTicket event={event} user={user} booking={booking} />
+        <EventTicket
+          event={event}
+          user={user}
+          booking={booking}
+          seats={seatList}
+          qrCode={qrCode}
+        />
       );
       const eventType = event.category === "MOVIE" ? "Movie" : "Concert";
       filename = `${event.title.replace(/[^a-zA-Z0-9]/g, "_")}_${eventType}_Ticket.pdf`;
     }
 
     if (ticketComponent) {
-      const blob = await pdf(ticketComponent).toBlob();
-      const arrayBuffer = await blob.arrayBuffer();
-      pdfBuffer = Buffer.from(arrayBuffer);
+      console.log("Generating PDF from component...");
+      const stream = await pdf(ticketComponent).toBuffer();
+      console.log("PDF stream created, processing chunks...");
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      pdfBuffer = Buffer.concat(chunks);
+      console.log(
+        `PDF generated successfully, size: ${pdfBuffer.length} bytes`,
+      );
+    } else {
+      console.log("No ticket component created");
     }
   } catch (error) {
     console.error("Failed to generate PDF:", error);
@@ -322,11 +366,14 @@ export default async function generateEmail(
 
               <div class="detail-row">
                 <span class="detail-label">Quantity:</span>
-                <span class="detail-value"
-                  >${booking.quantity} Ticket${
-                    booking.quantity > 1 ? "s" : ""
-                  }</span
-                >
+                <span class="detail-value">
+                  ${booking.quantity} Ticket${booking.quantity > 1 ? "s" : ""}
+                  ${
+                    seatList.length > 0
+                      ? ` (${seatList.map((seat) => `${seat.row}-${seat.number}`).join(", ")})`
+                      : ""
+                  }
+                </span>
               </div>
 
               <div class="detail-row">
@@ -374,11 +421,18 @@ export default async function generateEmail(
     }
 
     if (pdfBuffer && filename) {
+      console.log(
+        `Attaching PDF: ${filename}, size: ${pdfBuffer.length} bytes`,
+      );
       mailOptions.attachments.push({
         filename: filename,
         content: pdfBuffer,
         contentType: "application/pdf",
       });
+    } else {
+      console.log("No PDF buffer or filename available for attachment");
+      console.log("pdfBuffer exists:", !!pdfBuffer);
+      console.log("filename:", filename);
     }
 
     await transporter.sendMail(mailOptions);

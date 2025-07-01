@@ -10,11 +10,13 @@ export const downloadTicket = async ({
   train,
   user,
   booking,
+  seats = [],
 }: {
   event?: Event;
   train?: Train;
   user: User;
   booking: Booking;
+  seats?: { row: string; number: number }[];
 }) => {
   try {
     let ticketComponent;
@@ -27,7 +29,12 @@ export const downloadTicket = async ({
       filename = `${train.name.replace(/[^a-zA-Z0-9]/g, "_")}_Train_Ticket.pdf`;
     } else if (event) {
       ticketComponent = (
-        <EventTicketClient event={event} user={user} booking={booking} />
+        <EventTicketClient
+          event={event}
+          user={user}
+          booking={booking}
+          seats={seats}
+        />
       );
       const eventType = event.category === "MOVIE" ? "Movie" : "Concert";
       filename = `${event.title.replace(/[^a-zA-Z0-9]/g, "_")}_${eventType}_Ticket.pdf`;
@@ -60,11 +67,13 @@ export const previewTicket = async ({
   train,
   user,
   booking,
+  seats = [],
 }: {
   event?: Event;
   train?: Train;
   user: User;
   booking: Booking;
+  seats?: { row: string; number: number }[];
 }) => {
   try {
     let ticketComponent;
@@ -75,7 +84,12 @@ export const previewTicket = async ({
       );
     } else if (event) {
       ticketComponent = (
-        <EventTicketClient event={event} user={user} booking={booking} />
+        <EventTicketClient
+          event={event}
+          user={user}
+          booking={booking}
+          seats={seats}
+        />
       );
     } else {
       return { success: false, error: "No event or train provided" };

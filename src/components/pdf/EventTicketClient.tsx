@@ -208,10 +208,12 @@ export default function EventTicketClient({
   event,
   user,
   booking,
+  seats = [],
 }: {
   event: Event;
   user: User;
   booking: Booking;
+  seats: { row: string; number: number }[];
 }) {
   const eventDateTime = new Date(booking.time);
   const qrCode = generateQR(booking, user, event);
@@ -279,6 +281,13 @@ export default function EventTicketClient({
               <Text style={styles.infoValue}>
                 {booking.quantity} Ticket{booking.quantity > 1 ? "s" : ""}
               </Text>
+              {seats.length > 0 && (
+                <Text style={styles.infoValue}>
+                  (
+                  {seats.map((seat) => `${seat.row}-${seat.number}`).join(", ")}
+                  )
+                </Text>
+              )}
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Holder</Text>

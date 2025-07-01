@@ -20,6 +20,8 @@ interface StripePaymentFormProps {
   trainId?: string;
   quantity: number;
   time: string;
+  location?: string;
+  seatIds?: string[];
   onSuccess: (booking: Booking) => void;
   onError: (error: string) => void;
 }
@@ -30,6 +32,8 @@ function PaymentForm({
   trainId,
   quantity,
   time,
+  location,
+  seatIds,
   onSuccess,
   onError,
 }: StripePaymentFormProps) {
@@ -59,6 +63,8 @@ function PaymentForm({
           trainId,
           quantity,
           time,
+          location,
+          seatIds,
         }),
       });
 
@@ -91,6 +97,8 @@ function PaymentForm({
           body: JSON.stringify({
             paymentIntentId: paymentIntent.id,
             time,
+            location,
+            seatIds,
           }),
         });
 

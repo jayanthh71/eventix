@@ -31,6 +31,7 @@ export default function ConcertBooking({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
 
   const totalPrice = concert ? seats * concert.price : 0;
 
@@ -627,6 +628,8 @@ export default function ConcertBooking({
                     eventId={concert.id}
                     quantity={seats}
                     time={new Date(concert.date).toISOString()}
+                    location={concert.location}
+                    seatIds={selectedSeats}
                     onSuccess={handleStripeSuccess}
                     onError={handleStripeError}
                   />

@@ -27,6 +27,7 @@ export default function TrainBooking({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
 
   const totalPrice = train ? seats * train.price : 0;
 
@@ -696,6 +697,8 @@ export default function TrainBooking({
                   trainId={train.id}
                   quantity={seats}
                   time={new Date(train.departure).toISOString()}
+                  location={train.from}
+                  seatIds={selectedSeats}
                   onSuccess={handleStripeSuccess}
                   onError={handleStripeError}
                 />

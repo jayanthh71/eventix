@@ -36,7 +36,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const { amount, eventId, trainId, quantity, time } = await request.json();
+    const {
+      amount,
+      eventId,
+      trainId,
+      quantity,
+      time,
+      location,
+      seatIds,
+      date,
+      showtime,
+    } = await request.json();
 
     if (!time) {
       return NextResponse.json(
@@ -60,6 +70,10 @@ export async function POST(request: NextRequest) {
       time: string;
       eventId?: string;
       trainId?: string;
+      location?: string;
+      seatIds?: string;
+      date?: string;
+      showtime?: string;
     } = {
       quantity: quantity.toString(),
       userId: user.id,
@@ -71,6 +85,18 @@ export async function POST(request: NextRequest) {
     }
     if (trainId) {
       metadata.trainId = trainId;
+    }
+    if (location) {
+      metadata.location = location;
+    }
+    if (seatIds && Array.isArray(seatIds)) {
+      metadata.seatIds = seatIds.join(",");
+    }
+    if (date) {
+      metadata.date = date;
+    }
+    if (showtime) {
+      metadata.showtime = showtime;
     }
 
     const paymentIntent = await stripe.paymentIntents.create({

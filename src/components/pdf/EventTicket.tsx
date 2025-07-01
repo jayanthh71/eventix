@@ -1,4 +1,3 @@
-import generateQR from "@/lib/events/generateQR";
 import { Booking, Event, User } from "@prisma/client";
 import {
   Document,
@@ -9,24 +8,30 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
+import path from "path";
 
 Font.register({
   family: "Anek Latin",
   fonts: [
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Regular.ttf`,
+      src: path.join(process.cwd(), "public", "fonts", "AnekLatin-Regular.ttf"),
       fontWeight: "normal",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Medium.ttf`,
+      src: path.join(process.cwd(), "public", "fonts", "AnekLatin-Medium.ttf"),
       fontWeight: "medium",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-SemiBold.ttf`,
+      src: path.join(
+        process.cwd(),
+        "public",
+        "fonts",
+        "AnekLatin-SemiBold.ttf",
+      ),
       fontWeight: "semibold",
     },
     {
-      src: `${process.cwd()}/public/fonts/AnekLatin-Bold.ttf`,
+      src: path.join(process.cwd(), "public", "fonts", "AnekLatin-Bold.ttf"),
       fontWeight: "bold",
     },
   ],
@@ -206,13 +211,16 @@ export default function EventTicket({
   event,
   user,
   booking,
+  seats,
+  qrCode,
 }: {
   event: Event;
   user: User;
   booking: Booking;
+  seats: { row: string; number: number }[];
+  qrCode: string;
 }) {
   const eventDateTime = new Date(booking.time);
-  const qrCode = generateQR(booking, user, event);
 
   return (
     <Document>
@@ -221,7 +229,7 @@ export default function EventTicket({
           <View style={styles.logoContainer}>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image
-              src={`${process.cwd()}/public/logo.png`}
+              src={path.join(process.cwd(), "public", "logo.png")}
               style={styles.logoImage}
             />
             <Text style={styles.logo}>Eventix</Text>
@@ -280,6 +288,13 @@ export default function EventTicket({
               <Text style={styles.infoValue}>
                 {booking.quantity} Ticket{booking.quantity > 1 ? "s" : ""}
               </Text>
+              {seats.length > 0 && (
+                <Text style={styles.infoValue}>
+                  (
+                  {seats.map((seat) => `${seat.row}-${seat.number}`).join(", ")}
+                  )
+                </Text>
+              )}
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Holder</Text>

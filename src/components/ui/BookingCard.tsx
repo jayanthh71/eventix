@@ -126,10 +126,16 @@ export default function BookingCard({
         throw new Error("Event details not found in booking");
       }
 
+      const seatsResponse = await fetch(
+        `/api/bookings/seats?bookingId=${booking.id}`,
+      );
+      const seats = await seatsResponse.json();
+
       const result = await previewTicket({
         event: fullBooking.event,
         user,
         booking: fullBooking,
+        seats: seats.seats,
       });
 
       if (!result.success) {

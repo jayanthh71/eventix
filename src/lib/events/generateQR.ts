@@ -8,6 +8,11 @@ export default async function generateQR(
   train?: Train,
 ) {
   try {
+    const seatsResponse = await fetch(
+      `/api/bookings/seats?bookingId=${booking.id}`,
+    );
+    const seats = await seatsResponse.json();
+
     const qrData = event
       ? {
           bookingId: booking.id,
@@ -19,6 +24,13 @@ export default async function generateQR(
           userName: user.name,
           userEmail: user.email,
           quantity: booking.quantity,
+          seats:
+            event.category === "MOVIE"
+              ? seats.seats.map(
+                  (seat: { row: string; number: number }) =>
+                    `${seat.row}-${seat.number}`,
+                )
+              : [],
         }
       : train
         ? {

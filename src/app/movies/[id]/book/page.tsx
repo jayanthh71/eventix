@@ -174,10 +174,15 @@ export default function MovieBooking({
 
     setIsDownloadingPDF(true);
     try {
+      const seatsResponse = await fetch(
+        `/api/bookings/seats?bookingId=${createdBooking.id}`,
+      );
+      const seatsData = await seatsResponse.json();
       const result = await downloadTicket({
         event: movie,
         user: user,
         booking: createdBooking,
+        seats: seatsData.seats || [],
       });
 
       if (!result.success) {
@@ -930,6 +935,8 @@ export default function MovieBooking({
                   eventId={movie.id}
                   quantity={seats}
                   time={getBookingTime()}
+                  location={selectedLocation || undefined}
+                  seatIds={selectedSeats}
                   onSuccess={handleStripeSuccess}
                   onError={handleStripeError}
                 />
