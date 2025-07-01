@@ -27,6 +27,7 @@ export default function TrainBooking({
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
 
   const totalPrice = train ? seats * train.price : 0;

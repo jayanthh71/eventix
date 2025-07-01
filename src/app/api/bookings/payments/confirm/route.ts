@@ -38,8 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const reqBody = await request.json();
-    const { paymentIntentId, time, location, seatIds, date, showtime } =
-      reqBody;
+    const { paymentIntentId, time, location, seatIds, date } = reqBody;
 
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
@@ -109,7 +108,6 @@ export async function POST(request: NextRequest) {
     const bookingDate = date || undefined;
     const bookingLocation =
       location || paymentIntent.metadata.location || undefined;
-    const bookingShowtime = showtime || undefined;
 
     if (
       eventId &&
@@ -166,7 +164,15 @@ export async function POST(request: NextRequest) {
           const rowLetter = /^[A-Z]$/.test(row)
             ? row
             : String.fromCharCode(64 + Number(row));
-          const seatData: any = {
+          const seatData: {
+            eventId: string;
+            location: string;
+            date: Date;
+            showtime: Date;
+            row: string;
+            number: number;
+            bookingId: string;
+          } = {
             eventId,
             location: bookingLocation,
             date: new Date(time),

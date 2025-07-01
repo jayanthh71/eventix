@@ -1,4 +1,3 @@
-import generateQR from "@/lib/events/generateQR";
 import { Booking, Train, User } from "@prisma/client";
 import {
   Document,

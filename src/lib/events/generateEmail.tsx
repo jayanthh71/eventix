@@ -48,7 +48,6 @@ export default async function generateEmail(
     let ticketComponent;
 
     if (train) {
-      console.log("Creating train ticket component...");
       ticketComponent = (
         <TrainTicket
           train={train}
@@ -59,7 +58,6 @@ export default async function generateEmail(
       );
       filename = `${train.name.replace(/[^a-zA-Z0-9]/g, "_")}_Train_Ticket.pdf`;
     } else if (event) {
-      console.log("Creating event ticket component...");
       ticketComponent = (
         <EventTicket
           event={event}
@@ -74,19 +72,13 @@ export default async function generateEmail(
     }
 
     if (ticketComponent) {
-      console.log("Generating PDF from component...");
       const stream = await pdf(ticketComponent).toBuffer();
-      console.log("PDF stream created, processing chunks...");
       const chunks: Buffer[] = [];
       for await (const chunk of stream) {
         chunks.push(Buffer.from(chunk));
       }
       pdfBuffer = Buffer.concat(chunks);
-      console.log(
-        `PDF generated successfully, size: ${pdfBuffer.length} bytes`,
-      );
     } else {
-      console.log("No ticket component created");
     }
   } catch (error) {
     console.error("Failed to generate PDF:", error);
@@ -421,18 +413,11 @@ export default async function generateEmail(
     }
 
     if (pdfBuffer && filename) {
-      console.log(
-        `Attaching PDF: ${filename}, size: ${pdfBuffer.length} bytes`,
-      );
       mailOptions.attachments.push({
         filename: filename,
         content: pdfBuffer,
         contentType: "application/pdf",
       });
-    } else {
-      console.log("No PDF buffer or filename available for attachment");
-      console.log("pdfBuffer exists:", !!pdfBuffer);
-      console.log("filename:", filename);
     }
 
     await transporter.sendMail(mailOptions);

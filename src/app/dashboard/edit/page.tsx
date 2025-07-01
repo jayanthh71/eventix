@@ -102,7 +102,6 @@ function EditEventContent() {
           setImageUploadError("");
           setImageJustUploaded(false);
 
-          console.log("Fetched event data:", event);
           console.log("Set imageUrl:", event.imageUrl || "");
         } else {
           setError(result.error || "Failed to fetch event");
