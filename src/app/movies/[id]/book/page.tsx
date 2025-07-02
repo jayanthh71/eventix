@@ -7,6 +7,7 @@ import StripePaymentForm from "@/components/ui/StripePaymentForm";
 import { downloadTicket } from "@/lib/events/generateTicket";
 import useAuth from "@/lib/hooks/useAuth";
 import { useMovieById, useSeatsForEvent } from "@/lib/hooks/useData";
+import { useSocket } from "@/lib/hooks/useSocket";
 import { Booking } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
@@ -46,6 +47,19 @@ export default function MovieBooking({
     selectedShowtime,
   );
 
+  const {
+    seats: realTimeSeats,
+    selectSeat,
+    unselectSeat,
+  } = useSocket({
+    movieId: movie?.id ?? "",
+    showtime: selectedShowtime ?? "",
+    date: selectedDate ?? "",
+    location: selectedLocation ?? "",
+    userId: user?.id ?? "",
+    serverUrl: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:4000",
+  });
+
   useEffect(() => {
     const dateParam = searchParams.get("date");
     const locationParam = searchParams.get("location");
@@ -79,14 +93,30 @@ export default function MovieBooking({
     return date.toISOString();
   };
 
+  // Helper to determine if a seat is selected by another user
+  const isSeatSelectedByOther = (seatId: string) => {
+    return realTimeSeats[seatId] && realTimeSeats[seatId] !== user?.id;
+  };
+
+  // Update local selection and emit socket events
   const handleSelectSeat = (seatId: string) => {
-    if (!seatData) return;
+    if (isSeatSelectedByOther(seatId)) return;
     if (selectedSeats.includes(seatId)) {
       setSelectedSeats(selectedSeats.filter((id) => id !== seatId));
+      unselectSeat(seatId);
     } else if (selectedSeats.length < seats) {
       setSelectedSeats([...selectedSeats, seatId]);
+      selectSeat(seatId);
     }
   };
+
+  // Compute heldSeats: seats held by others (not booked, not selected by this user)
+  const heldSeats = Object.entries(realTimeSeats)
+    .filter(
+      ([seatId, holderId]) =>
+        holderId !== user?.id && !selectedSeats.includes(seatId),
+    )
+    .map(([seatId]) => seatId);
 
   const handleBooking = async () => {
     if (
@@ -697,8 +727,9 @@ export default function MovieBooking({
                 <div className="mb-8">
                   <SeatGrid
                     bookedSeats={seatData as BookedSeat[]}
-                    seatLimit={seats}
                     selectedSeats={selectedSeats}
+                    heldSeats={heldSeats}
+                    seatLimit={seats}
                     onSelect={handleSelectSeat}
                   />
                 </div>

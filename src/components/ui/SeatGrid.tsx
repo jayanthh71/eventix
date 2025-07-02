@@ -8,6 +8,7 @@ type SeatGridProps = {
   cols?: number;
   bookedSeats: BookedSeat[];
   selectedSeats: string[];
+  heldSeats?: string[];
   seatLimit: number;
   onSelect: (seatId: string) => void;
 };
@@ -16,6 +17,7 @@ export default function SeatGrid({
   cols = 22,
   bookedSeats,
   selectedSeats,
+  heldSeats = [],
   seatLimit,
   onSelect,
 }: SeatGridProps) {
@@ -68,21 +70,32 @@ export default function SeatGrid({
                 const booked = isBooked(rowLabel, number);
                 const id = seatId(rowLabel, number);
                 const isSelected = selectedSeats.includes(id);
+                const isHeld = heldSeats.includes(id);
                 const currentSeatNumber = seatNumber;
                 seatNumber++;
                 return (
                   <button
                     key={id}
-                    disabled={booked}
+                    disabled={booked || isHeld}
                     onClick={() => onSelect(id)}
                     className={`font-anek flex h-10 w-10 items-center justify-center rounded-md border text-sm font-bold transition-all duration-200 ${
                       booked
                         ? "cursor-not-allowed border-gray-500 bg-gray-600 text-gray-300"
-                        : isSelected
-                          ? "cursor-pointer border-purple-400 bg-purple-500/80 text-white"
-                          : `${selectedSeats.length >= seatLimit ? "cursor-not-allowed" : "cursor-pointer"} border-gray-600 bg-gray-800 text-white hover:border-purple-400 hover:bg-purple-700/40`
+                        : isHeld
+                          ? "cursor-not-allowed border-yellow-400 bg-yellow-400/80 text-white"
+                          : isSelected
+                            ? "cursor-pointer border-purple-400 bg-purple-500/80 text-white"
+                            : `${selectedSeats.length >= seatLimit ? "cursor-not-allowed" : "cursor-pointer"} border-gray-600 bg-gray-800 text-white hover:border-purple-400 hover:bg-purple-700/40`
                     } `}
-                    title={`Row ${rowLabel}, Seat ${currentSeatNumber}`}
+                    title={
+                      booked
+                        ? `Booked`
+                        : isHeld
+                          ? `Held by another user`
+                          : isSelected
+                            ? `Selected`
+                            : `Row ${rowLabel}, Seat ${currentSeatNumber}`
+                    }
                   >
                     {currentSeatNumber}
                   </button>
@@ -112,6 +125,12 @@ export default function SeatGrid({
             S
           </span>
           Selected
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <span className="flex h-10 w-10 items-center justify-center rounded-md border border-yellow-400 bg-yellow-400/80 text-sm font-bold text-white">
+            H
+          </span>
+          Held by others
         </div>
         <div className="flex flex-col items-center gap-1">
           <span className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-500 bg-gray-600 text-sm font-bold text-gray-300">
