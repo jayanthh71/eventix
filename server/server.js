@@ -84,9 +84,6 @@ app.post("/api/notify-booking", express.json(), (req, res) => {
       delete seatState[room][seatId];
     }
   });
-  console.log(
-    `Booking notification: seats ${seatIds.join(", ")} booked in room ${room}`,
-  );
   io.to(room).emit("seat-booked", { seatIds });
   res.send("OK");
 });

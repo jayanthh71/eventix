@@ -75,7 +75,9 @@ export default function BookingCard({
 
   const isUpcomingEvent = () => {
     if (!isEvent || !booking.event) return false;
-    const eventDate = new Date(booking.event.date);
+    const eventDate = new Date(
+      booking.event.category === "MOVIE" ? booking.time : booking.event.date,
+    );
     const now = new Date();
     return eventDate > now;
   };

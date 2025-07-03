@@ -28,7 +28,16 @@ export default async function generateQR(
             event.category === "MOVIE"
               ? seats.seats.map(
                   (seat: { row: string; number: number }) =>
-                    `${seat.row}-${seat.number}`,
+                    `${seat.row}-${
+                      seat.number -
+                      (seat.row === "A"
+                        ? 1
+                        : seat.number > 15
+                          ? 5
+                          : seat.number > 6
+                            ? 3
+                            : 1)
+                    }`,
                 )
               : [],
         }

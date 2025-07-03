@@ -284,7 +284,21 @@ export default function EventTicketClient({
               {seats.length > 0 && (
                 <Text style={styles.infoValue}>
                   (
-                  {seats.map((seat) => `${seat.row}-${seat.number}`).join(", ")}
+                  {seats
+                    .map(
+                      (seat) =>
+                        `${seat.row}-${
+                          seat.number -
+                          (seat.row === "A"
+                            ? 1
+                            : seat.number > 15
+                              ? 5
+                              : seat.number > 6
+                                ? 3
+                                : 1)
+                        }`,
+                    )
+                    .join(", ")}
                   )
                 </Text>
               )}

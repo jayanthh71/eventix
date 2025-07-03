@@ -362,7 +362,21 @@ export default async function generateEmail(
                   ${booking.quantity} Ticket${booking.quantity > 1 ? "s" : ""}
                   ${
                     seatList.length > 0
-                      ? ` (${seatList.map((seat) => `${seat.row}-${seat.number}`).join(", ")})`
+                      ? ` (${seatList
+                          .map(
+                            (seat) =>
+                              `${seat.row}-${
+                                seat.number -
+                                (seat.row === "A"
+                                  ? 1
+                                  : seat.number > 15
+                                    ? 5
+                                    : seat.number > 6
+                                      ? 3
+                                      : 1)
+                              }`,
+                          )
+                          .join(", ")})`
                       : ""
                   }
                 </span>

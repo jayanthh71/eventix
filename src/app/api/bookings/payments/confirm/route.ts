@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            room: `${eventId}_${time.toISOString()}_${location}`,
+            room: `${eventId}_${time}_${location}`,
             seatIds,
           }),
         },
