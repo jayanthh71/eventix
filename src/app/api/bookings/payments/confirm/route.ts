@@ -189,6 +189,18 @@ export async function POST(request: NextRequest) {
         await Promise.all(seatCreates);
       }
 
+      await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:4000"}/api/notify-booking`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: `${eventId}_${time.toISOString()}_${location}`,
+            seatIds,
+          }),
+        },
+      );
+
       return booking;
     });
 

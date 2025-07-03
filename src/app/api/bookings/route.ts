@@ -183,6 +183,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Combine date and showtime into a single Date object
+    let combinedDateTime: Date | null = null;
+    if (date && showtime) {
+      const dateObj = new Date(date);
+      const showtimeObj = new Date(showtime);
+      dateObj.setHours(
+        showtimeObj.getHours(),
+        showtimeObj.getMinutes(),
+        showtimeObj.getSeconds(),
+        showtimeObj.getMilliseconds(),
+      );
+      combinedDateTime = dateObj;
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const booking = await tx.booking.create({
         data: {
@@ -191,7 +205,7 @@ export async function POST(request: NextRequest) {
           trainId: trainId || null,
           quantity,
           totalPrice,
-          time: new Date(time),
+          time: (combinedDateTime ?? (time ? new Date(time) : null)) as Date,
           location: location || null,
           status: "CONFIRMED",
           paymentMethod: "WALLET",
@@ -212,9 +226,10 @@ export async function POST(request: NextRequest) {
           return tx.seat.create({
             data: {
               eventId,
-              date: new Date(date),
+              date: (date ? new Date(date) : null) as Date,
               location,
-              showtime: new Date(showtime),
+              showtime: (combinedDateTime ??
+                (showtime ? new Date(showtime) : null)) as Date,
               row: rowLetter,
               number: Number(number),
               bookingId: booking.id,
@@ -223,6 +238,18 @@ export async function POST(request: NextRequest) {
         });
         await Promise.all(seatCreates);
       }
+
+      await fetch(
+        `${process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:4000"}/api/notify-booking`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: `${eventId}_${combinedDateTime?.toISOString()}_${location}`,
+            seatIds,
+          }),
+        },
+      );
 
       await tx.user.update({
         where: { id: user.id },

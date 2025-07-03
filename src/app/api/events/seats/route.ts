@@ -13,13 +13,19 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
+  let combinedShowtimeISO = showtime;
+  if (date && showtime) {
+    const dateObj = new Date(date);
+    const timeObj = new Date(showtime);
+    dateObj.setHours(timeObj.getHours(), timeObj.getMinutes(), 0, 0);
+    combinedShowtimeISO = dateObj.toISOString();
+  }
   try {
     const seats = await prisma.seat.findMany({
       where: {
         eventId,
-        date,
         location,
-        showtime: new Date(showtime),
+        showtime: new Date(combinedShowtimeISO),
       },
       select: {
         row: true,

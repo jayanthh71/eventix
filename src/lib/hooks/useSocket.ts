@@ -11,6 +11,7 @@ export function useSocket({
   location,
   userId,
   serverUrl,
+  onSeatsBooked,
 }: {
   movieId: string;
   showtime: string;
@@ -18,11 +19,13 @@ export function useSocket({
   location: string;
   userId: string;
   serverUrl: string;
+  onSeatsBooked?: (seatIds: string[]) => void;
 }) {
   const [seats, setSeats] = useState<SeatState>({});
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    if (!movieId || !showtime || !date || !location || !userId) return;
     const socket = io(serverUrl, { transports: ["websocket"] });
     socketRef.current = socket;
 
@@ -38,10 +41,19 @@ export function useSocket({
       });
     });
 
+    socket.on("seat-booked", ({ seatIds }) => {
+      if (onSeatsBooked) onSeatsBooked(seatIds);
+      setSeats((prev) => {
+        const updated = { ...prev };
+        (seatIds as string[]).forEach((id: string) => delete updated[id]);
+        return updated;
+      });
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [movieId, showtime, date, location, userId, serverUrl]);
+  }, [movieId, showtime, date, location, userId, serverUrl, onSeatsBooked]);
 
   const selectSeat = (seatId: string) => {
     socketRef.current?.emit("select-seat", { seatId });

@@ -12,7 +12,7 @@ import { Booking } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
 export default function MovieBooking({
   params,
@@ -40,12 +40,17 @@ export default function MovieBooking({
     data: seatData,
     isLoading: seatsLoading,
     error: seatsError,
+    refetch: refetchSeats,
   } = useSeatsForEvent(
     movie?.id ?? null,
     selectedDate,
     selectedLocation,
     selectedShowtime,
   );
+
+  const onSeatsBooked = useCallback(async () => {
+    await refetchSeats();
+  }, [refetchSeats]);
 
   const {
     seats: realTimeSeats,
@@ -58,6 +63,7 @@ export default function MovieBooking({
     location: selectedLocation ?? "",
     userId: user?.id ?? "",
     serverUrl: process.env.NEXT_PUBLIC_SERVER_URL ?? "http://localhost:4000",
+    onSeatsBooked,
   });
 
   useEffect(() => {
@@ -716,13 +722,9 @@ export default function MovieBooking({
               selectedLocation &&
               selectedShowtime &&
               (seatsLoading ? (
-                <div className="py-8 text-center text-gray-400">
-                  Loading seats...
-                </div>
+                <LoadingIndicator text="Loading seats..." />
               ) : seatsError ? (
-                <div className="py-8 text-center text-red-400">
-                  Failed to load seats.
-                </div>
+                <ErrorMessage message="Failed to load seats." />
               ) : seatData && seatData.length >= 0 ? (
                 <div className="mb-8">
                   <SeatGrid

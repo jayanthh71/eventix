@@ -272,7 +272,12 @@ export function useSeatsForEvent(
       return data.seats;
     },
     enabled: !!eventId && !!date && !!location && !!showtime,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    refetchInterval: false,
   });
 }
 

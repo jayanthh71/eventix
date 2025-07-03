@@ -18,7 +18,14 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   socket.on("join-room", (payload) => {
     const { movieId, showtime, date, location, userId } = payload;
-    const room = `${movieId}_${showtime}_${date}_${location}`;
+    let combinedShowtimeISO = showtime;
+    if (date && showtime) {
+      const dateObj = new Date(date);
+      const timeObj = new Date(showtime);
+      dateObj.setHours(timeObj.getHours(), timeObj.getMinutes(), 0, 0);
+      combinedShowtimeISO = dateObj.toISOString();
+    }
+    const room = `${movieId}_${combinedShowtimeISO}_${location}`;
     socket.join(room);
     socket.data = socket.data || {};
     socket.data.room = room;
@@ -63,6 +70,25 @@ io.on("connection", (socket) => {
 
 app.get("/", (req, res) => {
   res.send("Socket.IO server is running.");
+});
+
+app.post("/api/notify-booking", express.json(), (req, res) => {
+  const { room, seatIds } = req.body;
+  if (!room || !Array.isArray(seatIds)) {
+    console.log("Invalid notify-booking payload", req.body);
+    return res.status(400).send("Invalid");
+  }
+  seatState[room] = seatState[room] || {};
+  seatIds.forEach((seatId) => {
+    if (seatState[room][seatId]) {
+      delete seatState[room][seatId];
+    }
+  });
+  console.log(
+    `Booking notification: seats ${seatIds.join(", ")} booked in room ${room}`,
+  );
+  io.to(room).emit("seat-booked", { seatIds });
+  res.send("OK");
 });
 
 const PORT = process.env.PORT || 4000;
