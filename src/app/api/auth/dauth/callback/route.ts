@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
           client_secret: process.env.DAUTH_SECRET,
           grant_type: "authorization_code",
           code,
-          redirect_uri: `${process.env.FRONTEND_URL || "http://localhost:3000"}/api/auth/dauth/callback`,
+          redirect_uri: `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/api/auth/dauth/callback`,
         }),
       },
     );
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
       });
 
       return NextResponse.redirect(
-        process.env.FRONTEND_URL || "http://localhost:3000",
+        process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
       );
     } catch (error) {
       console.error("Database error details:", error);

@@ -11,7 +11,7 @@ export async function GET() {
 
     const params = new URLSearchParams({
       client_id: process.env.DAUTH_ID,
-      redirect_uri: `${process.env.FRONTEND_URL || "http://localhost:3000"}/api/auth/dauth/callback`,
+      redirect_uri: `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/api/auth/dauth/callback`,
       response_type: "code",
       scope: "user",
     });

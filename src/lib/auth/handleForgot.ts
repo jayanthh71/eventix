@@ -13,7 +13,7 @@ export default async function handleForgot(email: string) {
   });
 
   const resetToken = await generateResetToken(email);
-  const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset?token=${resetToken}`;
+  const resetUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/reset?token=${resetToken}`;
 
   const htmlContent = `
     <!doctype html>

@@ -66,7 +66,7 @@ export default async function generateQR(
       });
     }
 
-    const qrString = `${process.env.FRONTEND_URL || "http://localhost:3000"}/api/bookings/qr?${params.toString()}`;
+    const qrString = `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/api/bookings/qr?${params.toString()}`;
     const qrCodeDataURL = await QRCode.toDataURL(qrString, {
       errorCorrectionLevel: "M",
       margin: 1,
