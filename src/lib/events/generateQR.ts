@@ -8,10 +8,14 @@ export default async function generateQR(
   train?: Train,
 ) {
   try {
-    const seatsResponse = await fetch(
-      `/api/bookings/seats?bookingId=${booking.id}`,
-    );
-    const seats = await seatsResponse.json();
+    let seats: { row: string; number: number }[] = [];
+    if (event?.category === "MOVIE") {
+      const seatsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/api/bookings/seats?bookingId=${booking.id}`,
+      );
+      const seatsResponseData = await seatsResponse.json();
+      seats = seatsResponseData.seats;
+    }
 
     const qrData = event
       ? {
@@ -26,7 +30,7 @@ export default async function generateQR(
           quantity: booking.quantity,
           seats:
             event.category === "MOVIE"
-              ? seats.seats.map(
+              ? seats.map(
                   (seat: { row: string; number: number }) =>
                     `${seat.row}-${
                       seat.number -
