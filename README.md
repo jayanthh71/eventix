@@ -2,7 +2,7 @@
 
 A comprehensive event and train booking platform with real-time seat selection, multiple payment methods, and role-based access control.
 
-**By Jayanth Ramesh Kumar** | [Live Demo](https://delta-web-t3.vercel.app)
+**By Jayanth Ramesh Kumar** | [Live Demo](https://eventix-bookings.vercel.app)
 
 ## Preview
 <img width="1456" alt="image" src="https://github.com/user-attachments/assets/b94819ca-4c54-4070-8b48-a474e334f509" />
